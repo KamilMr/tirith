@@ -14,7 +14,7 @@ class TogglClient {
       start,
       stop,
       duration,
-      created_with: 'task-tracker',
+      created_with: 'tirith',
     };
 
     if (projectId) body.project_id = parseInt(projectId);

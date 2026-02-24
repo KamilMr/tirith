@@ -1,8 +1,8 @@
-# Task Tracker
+# Tirith
 
 A terminal-based time tracker with vim keybindings.
 
-![Task Tracker Screenshot](assets/task-tracker.png)
+![Tirith Screenshot](assets/task-tracker.png)
 
 Time tracker that
 

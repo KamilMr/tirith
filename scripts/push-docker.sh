@@ -5,7 +5,7 @@ echo $VERSION
 
 YOUR_USERNAME=kamilmrowka
 
-docker build -t $YOUR_USERNAME/task-tracker:$VERSION -t $YOUR_USERNAME/task-tracker:latest . && \
-  docker push $YOUR_USERNAME/task-tracker:$VERSION && \
-  docker push $YOUR_USERNAME/task-tracker:latest
+docker build -t $YOUR_USERNAME/tirith:$VERSION -t $YOUR_USERNAME/tirith:latest . && \
+  docker push $YOUR_USERNAME/tirith:$VERSION && \
+  docker push $YOUR_USERNAME/tirith:latest
 

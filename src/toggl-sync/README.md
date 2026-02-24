@@ -1,6 +1,6 @@
 # Toggl Sync Module
 
-This module syncs tasks from the task-tracker database to Toggl Track.
+This module syncs tasks from the Tirith database to Toggl Track.
 
 ## Configuration
 

@@ -6,7 +6,7 @@ services:
     ports:
       - '3307:3306'
     volumes:
-      - ~/data/task-tracker-dev/mysql:/var/lib/mysql
+      - ~/data/tirith-dev/mysql:/var/lib/mysql
     healthcheck:
       test:
         [
@@ -51,7 +51,7 @@ services:
       MYSQL_HOST: db
     command: pnpm knex migrate:latest --knexfile src/db/knexfile.js
 
-  tasktracker:
+  tirith:
     build:
       context: .
       dockerfile: Dockerfile

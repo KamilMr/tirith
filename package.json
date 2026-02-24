@@ -1,8 +1,8 @@
 {
-  "name": "task-tracker",
+  "name": "tirith",
   "version": "1.0.25",
-  "description": "Simple task-tracker for Nodejs",
-  "homepage": "https://github.com/KamilMr/task-tracker#readme",
+  "description": "Terminal-based time tracker with vim keybindings",
+  "homepage": "https://github.com/KamilMr/tirith#readme",
   "author": "kamil.mrowka@gmail.com",
   "type": "module",
   "license": "ISC",
@@ -24,15 +24,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/KamilMr/task-tracker.git"
+    "url": "git+ssh://git@github.com/KamilMr/tirith.git"
   },
   "keywords": [
-    "task-tracker",
+    "tirith",
     "nodejs",
     "toggle"
   ],
   "bugs": {
-    "url": "https://github.com/KamilMr/task-tracker/issues"
+    "url": "https://github.com/KamilMr/tirith/issues"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
