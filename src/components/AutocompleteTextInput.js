@@ -3,6 +3,9 @@ import {Text, Box, useInput} from 'ink';
 import {useNavigation} from '../contexts/NavigationContext.js';
 import Fuse from 'fuse.js';
 import taskService from '../services/taskService.js';
+import ScrollBox from './ScrollBox.js';
+
+const MAX_VISIBLE_SUGGESTIONS = 10;
 
 const AutocompleteTextInput = ({
   defaultValue = '',
@@ -118,15 +121,20 @@ const AutocompleteTextInput = ({
       </Text>
       {filteredSuggestions.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
-          {filteredSuggestions.map((suggestion, index) => (
-            <Text
-              key={index}
-              color={index === selectedIndex ? 'green' : 'gray'}
-            >
-              {index === selectedIndex ? '→ ' : '  '}
-              {suggestion}
-            </Text>
-          ))}
+          <ScrollBox
+            height={MAX_VISIBLE_SUGGESTIONS}
+            selectedIndex={selectedIndex}
+          >
+            {filteredSuggestions.map((suggestion, index) => (
+              <Text
+                key={index}
+                color={index === selectedIndex ? 'green' : 'gray'}
+              >
+                {index === selectedIndex ? '→ ' : '  '}
+                {suggestion}
+              </Text>
+            ))}
+          </ScrollBox>
         </Box>
       )}
     </Box>
