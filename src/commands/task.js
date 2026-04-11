@@ -6,6 +6,19 @@ import {getLocalNow, retriveYYYYMMDD} from '../utils.js';
 
 const json = data => console.log(JSON.stringify(data));
 
+export const create = async (title, {project: projectId}) => {
+  const id = await taskService.create({title, projectId: Number(projectId)});
+  const task = await taskModel.selectById(id);
+  const project = await projectModel.selectById(task.project_id);
+
+  json({
+    taskId: id,
+    title: task.title,
+    project: project?.name ?? null,
+    projectId: task.project_id,
+  });
+};
+
 export const toggle = async taskId => {
   const id = Number(taskId);
   const result = await taskService.toggleTaskById({taskId: id});

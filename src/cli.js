@@ -2,7 +2,7 @@
 
 import {program} from 'commander';
 import db from './db/db.js';
-import {toggle, active, list, stop} from './commands/task.js';
+import {create, toggle, active, list, stop} from './commands/task.js';
 import {list as listProjects} from './commands/project.js';
 
 const run = fn => async (...args) => {
@@ -17,6 +17,12 @@ const run = fn => async (...args) => {
 };
 
 const task = program.command('task');
+
+task
+  .command('create <title>')
+  .description('Create a new task')
+  .requiredOption('-p, --project <id>', 'Project ID')
+  .action(run(create));
 
 task
   .command('toggle <taskId>')
