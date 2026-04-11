@@ -72,6 +72,23 @@ export const list = async ({project: projectId, date} = {}) => {
   json(result);
 };
 
+export const toggleName = async (title, {project: projectId}) => {
+  const result = await taskService.toggleTask({
+    title,
+    projectId: Number(projectId),
+  });
+  const task = await taskModel.selectById(result.taskId);
+  const project = await projectModel.selectById(task.project_id);
+
+  json({
+    action: result.action,
+    taskId: result.taskId,
+    title: task.title,
+    project: project?.name ?? null,
+    projectId: task.project_id,
+  });
+};
+
 export const stop = async () => {
   const activeEntry = await timeEntryModel.selectActiveEntry();
   if (!activeEntry) {

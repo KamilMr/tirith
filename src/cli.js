@@ -2,7 +2,7 @@
 
 import {program} from 'commander';
 import db from './db/db.js';
-import {create, toggle, active, list, stop} from './commands/task.js';
+import {create, toggle, toggleName, active, list, stop} from './commands/task.js';
 import {list as listProjects} from './commands/project.js';
 
 const run = fn => async (...args) => {
@@ -28,6 +28,12 @@ task
   .command('toggle <taskId>')
   .description('Toggle a task on/off by ID')
   .action(run(toggle));
+
+task
+  .command('toggle-name <title>')
+  .description('Find or create a task by title, then toggle it')
+  .requiredOption('-p, --project <id>', 'Project ID')
+  .action(run(toggleName));
 
 task
   .command('active')
