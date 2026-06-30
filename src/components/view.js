@@ -15,6 +15,7 @@ import {usePolling} from '../hooks/hooks.js';
 import useScrollableList from '../hooks/useScrollableList.js';
 import useTaskAnalytics from '../hooks/useTaskAnalytics.js';
 import usePricing from '../hooks/usePricing.js';
+import useTotalEarnings from '../hooks/useTotalEarnings.js';
 import useEditorBuffer from '../hooks/useEditorBuffer.js';
 import KeyValue from './KeyValue.js';
 import RangeSelector from './RangeSelector.js';
@@ -94,6 +95,8 @@ const View = ({height}) => {
   const currentRange = getDateRange(RANGE_OPTIONS[selectedRangeIndex].type);
   const projectRange = getDateRange(RANGE_OPTIONS[projectRangeIndex].type);
   const clientRange = getDateRange(RANGE_OPTIONS[clientRangeIndex].type);
+  const taskProject = allProjects.find(p => p.id === taskDetails?.project_id);
+  const taskClient = clients.find(c => c.id === taskProject?.client_id);
 
   const {
     selectedIndex: selectedEntryIndex,
@@ -105,14 +108,13 @@ const View = ({height}) => {
     currentRange.startDate,
     currentRange.endDate,
   );
-  const {pricing, loading: pricingLoading} = usePricing(
-    selectedTaskId,
-    null,
-    null,
-    currentRange.startDate,
-    currentRange.endDate,
-    reload,
-  );
+  const {pricing: totalPricing, loading: totalPricingLoading} =
+    useTotalEarnings(
+      currentRange.startDate,
+      currentRange.endDate,
+      reload,
+      taskClient,
+    );
   const {pricing: projectPricing, loading: projectPricingLoading} = usePricing(
     null,
     selectedProjectId,
@@ -261,8 +263,8 @@ const View = ({height}) => {
   const renderTaskDetails = () => {
     if (!taskDetails) return <Text dimColor>Loading task details...</Text>;
 
-    const project = allProjects.find(p => p.id === taskDetails.project_id);
-    const client = clients.find(c => c.id === project?.client_id);
+    const project = taskProject;
+    const client = taskClient;
 
     const selectedTaskEntries = timeEntries.filter(
       e => e.task_id === selectedTaskId,
@@ -364,7 +366,7 @@ const View = ({height}) => {
           </Box>
 
           <Box width={25} marginLeft={2}>
-            <Earnings pricing={pricing} loading={pricingLoading} />
+            <Earnings pricing={totalPricing} loading={totalPricingLoading} />
           </Box>
         </Box>
 
