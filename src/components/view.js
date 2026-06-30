@@ -41,6 +41,9 @@ const RANGE_OPTIONS = [
   {label: 'Prev Month', type: 'prevMonth'},
   {label: 'All', type: 'all'},
 ];
+const DEFAULT_RANGE_INDEX = RANGE_OPTIONS.findIndex(
+  option => option.type === 'thisMonth',
+);
 
 const View = ({height}) => {
   const {
@@ -78,9 +81,15 @@ const View = ({height}) => {
     else if (isProjectsFocused) setLastSection('project');
     else if (isTasksFocused) setLastSection('task');
   }, [isClientFocused, isProjectsFocused, isTasksFocused]);
-  const [selectedRangeIndex, setSelectedRangeIndex] = useState(1);
-  const [projectRangeIndex, setProjectRangeIndex] = useState(1);
-  const [clientRangeIndex, setClientRangeIndex] = useState(1);
+  const [selectedRangeIndex, setSelectedRangeIndex] = useState(
+    DEFAULT_RANGE_INDEX,
+  );
+  const [projectRangeIndex, setProjectRangeIndex] = useState(
+    DEFAULT_RANGE_INDEX,
+  );
+  const [clientRangeIndex, setClientRangeIndex] = useState(
+    DEFAULT_RANGE_INDEX,
+  );
 
   const currentRange = getDateRange(RANGE_OPTIONS[selectedRangeIndex].type);
   const projectRange = getDateRange(RANGE_OPTIONS[projectRangeIndex].type);

@@ -25,7 +25,6 @@ const Earnings = ({pricing, loading}) => {
     ...(pricing.taskCount !== undefined
       ? [{key: 'Tasks', value: pricing.taskCount}]
       : []),
-    {key: 'Hours', value: `${pricing.hours.toFixed(2)}h`},
     {
       key: 'Earned',
       value: (
