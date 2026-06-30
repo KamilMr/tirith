@@ -10,6 +10,22 @@ const WorkTargets = ({breakdown, loading}) => {
   if (!breakdown) return null;
 
   const {monthly, today} = breakdown;
+  const paceDelta = today.paceDelta ?? today.catchup ?? 0;
+  const paceDeltaItem =
+    paceDelta < 0
+      ? {
+          key: 'Catch up',
+          value: <Text color="red">{fmt(Math.abs(paceDelta))}</Text>,
+        }
+      : paceDelta > 0
+        ? {
+            key: 'Extra today',
+            value: <Text color="green">+{fmt(paceDelta)}</Text>,
+          }
+        : {
+            key: 'Status',
+            value: <Text color="green">You are on track :-)</Text>,
+          };
 
   return (
     <KeyValue
@@ -35,15 +51,7 @@ const WorkTargets = ({breakdown, loading}) => {
           ),
         },
         {key: 'Target', value: `${fmt(today.target)} /wd`},
-        {
-          key: 'Catch up',
-          value:
-            today.catchup > 0 ? (
-              <Text color="red">{fmt(today.catchup)}</Text>
-            ) : (
-              <Text color="green">You are on track :-)</Text>
-            ),
-        },
+        paceDeltaItem,
       ]}
     />
   );

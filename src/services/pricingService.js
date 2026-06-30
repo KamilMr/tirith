@@ -143,6 +143,7 @@ export const computeMonthlyTarget = ({
     workingDaysLeft,
     calendarDaysLeft,
     remainingHours,
+    todayBaselineRaw: todayBaseline,
     hoursPerWorkDay: formatDecimalHoursToHHmm(hoursPerWorkDay),
     hoursPerWorkDayRaw: hoursPerWorkDay,
     overflowHours: formatDecimalHoursToHHmm(overflowHours),
@@ -368,6 +369,7 @@ const pricingService = {
         : 0);
     const workedTodayHours = monthly.workedTodaySeconds / 3600;
     const dailyRequired = monthly.hoursPerWorkDayRaw;
+    const todayPaceDelta = workedTodayHours - monthly.todayBaselineRaw;
     const percentage =
       monthly.targetHours > 0
         ? Math.round((monthly.workedHours / monthly.targetHours) * 100)
@@ -383,6 +385,7 @@ const pricingService = {
         target: dailyTarget,
         required: dailyRequired,
         worked: workedTodayHours,
+        paceDelta: todayPaceDelta,
         catchup: monthly.overflowHoursRaw,
       },
     };
