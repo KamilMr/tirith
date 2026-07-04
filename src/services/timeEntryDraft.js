@@ -11,6 +11,18 @@ const moveDateByMinutes = (date, minutes) => {
   return createDateLike(date, movedTimestamp);
 };
 
+const roundDateDownToMinutes = (date, minutes) => {
+  const stepMs = minutes * 60 * 1000;
+  const roundedTimestamp = Math.floor(new Date(date).getTime() / stepMs) * stepMs;
+  return createDateLike(date, roundedTimestamp);
+};
+
+const roundDateUpToMinutes = (date, minutes) => {
+  const stepMs = minutes * 60 * 1000;
+  const roundedTimestamp = Math.ceil(new Date(date).getTime() / stepMs) * stepMs;
+  return createDateLike(date, roundedTimestamp);
+};
+
 export const moveTimeEntryByMinutes = (entry, minutes) => {
   if (!entry) return null;
 
@@ -18,6 +30,16 @@ export const moveTimeEntryByMinutes = (entry, minutes) => {
     ...entry,
     start: moveDateByMinutes(entry.start, minutes),
     end: entry.end ? moveDateByMinutes(entry.end, minutes) : entry.end,
+  };
+};
+
+export const roundTimeEntryToFiveMinutes = entry => {
+  if (!entry) return null;
+
+  return {
+    ...entry,
+    start: roundDateDownToMinutes(entry.start, 5),
+    end: entry.end ? roundDateUpToMinutes(entry.end, 5) : entry.end,
   };
 };
 

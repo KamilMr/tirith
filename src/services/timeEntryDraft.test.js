@@ -3,9 +3,13 @@ import {TZDate} from '@date-fns/tz';
 import {
   moveTimeEntryByMinutes,
   resizeTimeEntryEndByMinutes,
+  roundTimeEntryToFiveMinutes,
 } from './timeEntryDraft.js';
 
-const date = value => new Date(`2026-01-27T${value}:00Z`);
+const date = value => {
+  const timeWithSeconds = value.split(':').length === 2 ? `${value}:00` : value;
+  return new Date(`2026-01-27T${timeWithSeconds}Z`);
+};
 
 describe('moveTimeEntryByMinutes', () => {
   it('moves start and end by the same amount while preserving duration', () => {
@@ -37,6 +41,34 @@ describe('moveTimeEntryByMinutes', () => {
     expect(movedEntry.start.timeZone).toBe('Europe/Warsaw');
     expect(movedEntry.start.getHours()).toBe(7);
     expect(movedEntry.end.getHours()).toBe(8);
+  });
+});
+
+describe('roundTimeEntryToFiveMinutes', () => {
+  it('rounds start down and end up to the nearest five-minute boundary', () => {
+    const originalEntry = {
+      id: 1,
+      start: date('09:01:30'),
+      end: date('09:32:10'),
+    };
+
+    const roundedEntry = roundTimeEntryToFiveMinutes(originalEntry);
+
+    expect(roundedEntry.start).toEqual(date('09:00'));
+    expect(roundedEntry.end).toEqual(date('09:35'));
+  });
+
+  it('keeps exact five-minute boundaries unchanged', () => {
+    const originalEntry = {
+      id: 1,
+      start: date('09:05'),
+      end: date('10:00'),
+    };
+
+    const roundedEntry = roundTimeEntryToFiveMinutes(originalEntry);
+
+    expect(roundedEntry.start).toEqual(date('09:05'));
+    expect(roundedEntry.end).toEqual(date('10:00'));
   });
 });
 
