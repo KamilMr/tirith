@@ -17,6 +17,12 @@ import useTaskAnalytics from '../hooks/useTaskAnalytics.js';
 import usePricing from '../hooks/usePricing.js';
 import useTotalEarnings from '../hooks/useTotalEarnings.js';
 import useEditorBuffer from '../hooks/useEditorBuffer.js';
+import {findTimeEntryOverlaps} from '../services/timeEntryOverlap.js';
+import {formatTimeEntryOverlapSummary} from '../services/timeEntryOverlapSummary.js';
+import {
+  moveTimeEntryByMinutes,
+  resizeTimeEntryEndByMinutes,
+} from '../services/timeEntryDraft.js';
 import KeyValue from './KeyValue.js';
 import RangeSelector from './RangeSelector.js';
 import Earnings from './Earnings.js';
@@ -67,6 +73,7 @@ const View = ({height}) => {
   const [allTasks, setAllTasks] = useState([]);
   const [taskDetails, setTaskDetails] = useState(null);
   const [timeEntries, setTimeEntries] = useState([]);
+  const [draftEntry, setDraftEntry] = useState(null);
   const [lastSection, setLastSection] = useState(null);
   const [dashboardTasks, setDashboardTasks] = useState([]);
   const [workBreakdown] = usePolling(
@@ -192,6 +199,47 @@ const View = ({height}) => {
 
   const {openEditor} = useEditorBuffer(triggerReload);
 
+  const startEntryAdjustment = () => {
+    if (timeEntries.length === 0) return;
+
+    const entryToAdjust = timeEntries[selectedEntryIndex];
+    if (!entryToAdjust?.end) return;
+
+    setDraftEntry({...entryToAdjust});
+  };
+
+  const moveDraftEntry = minutes => {
+    setDraftEntry(prev => moveTimeEntryByMinutes(prev, minutes));
+  };
+
+  const resizeDraftEntry = minutes => {
+    setDraftEntry(prev => resizeTimeEntryEndByMinutes(prev, minutes));
+  };
+
+  const cancelEntryAdjustment = () => {
+    setDraftEntry(null);
+  };
+
+  const saveDraftEntry = async () => {
+    if (!draftEntry) return;
+
+    await timeEntryModel.update({
+      id: draftEntry.id,
+      start: draftEntry.start,
+      end: draftEntry.end,
+    });
+
+    setTimeEntries(prev =>
+      prev.map(entry =>
+        entry.id === draftEntry.id
+          ? {...entry, start: draftEntry.start, end: draftEntry.end}
+          : entry,
+      ),
+    );
+    setDraftEntry(null);
+    triggerReload();
+  };
+
   const handleEditorOpen = () => {
     if (timeEntries.length === 0) return;
     openEditor(timeEntries, taskDetails?.title || 'All Entries');
@@ -227,13 +275,29 @@ const View = ({height}) => {
         ? 'project'
         : 'task';
 
+  const isAdjustingEntry = !!draftEntry;
+
   let keyMappings;
-  if (activeSection === 'task' && selectedTaskId && taskDetails)
+  if (activeSection === 'task' && selectedTaskId && taskDetails && draftEntry)
+    keyMappings = [
+      {key: 'j', action: () => moveDraftEntry(5)},
+      {key: 'k', action: () => moveDraftEntry(-5)},
+      {key: 'J', action: () => moveDraftEntry(30)},
+      {key: 'K', action: () => moveDraftEntry(-30)},
+      {key: 'l', action: () => resizeDraftEntry(5)},
+      {key: 'h', action: () => resizeDraftEntry(-5)},
+      {key: 'L', action: () => resizeDraftEntry(30)},
+      {key: 'H', action: () => resizeDraftEntry(-30)},
+      {key: 'return', action: saveDraftEntry},
+      {key: 'escape', action: cancelEntryAdjustment},
+    ];
+  else if (activeSection === 'task' && selectedTaskId && taskDetails)
     keyMappings = [
       {key: 'j', action: selectNextEntry},
       {key: 'k', action: selectPreviousEntry},
       {key: 'd', action: deleteSelectedEntry},
       {key: 'e', action: handleEditorOpen},
+      {key: 'm', action: startEntryAdjustment},
       {key: 'h', action: handleRangePrev},
       {key: 'l', action: handleRangeNext},
     ];
@@ -276,6 +340,12 @@ const View = ({height}) => {
       ? taskDetails.estimated_minutes * 60
       : null;
     const isOvertime = estimatedSec && totalSeconds > estimatedSec;
+    const selectedEntry = timeEntries[selectedEntryIndex];
+    const entryBeingChecked = draftEntry || selectedEntry;
+    const entryOverlaps = entryBeingChecked?.end
+      ? findTimeEntryOverlaps(entryBeingChecked, timeEntries)
+      : [];
+    const shouldShowOverlapInfo = draftEntry || entryOverlaps.length > 0;
 
     return (
       <Box flexDirection="column">
@@ -396,8 +466,13 @@ const View = ({height}) => {
                   End
                 </Text>
               </Box>
+              <Box width={14}>
+                <Text bold dimColor>
+                  Duration
+                </Text>
+              </Box>
               <Text bold dimColor>
-                Duration
+                Overlap
               </Text>
             </Box>
 
@@ -408,14 +483,25 @@ const View = ({height}) => {
               {timeEntries.map((entry, index) => {
                 const isCursor = index === selectedEntryIndex && isViewFocused;
                 const isSelectedTask = entry.task_id === selectedTaskId;
-                const color = isCursor
-                  ? 'green'
-                  : isSelectedTask
-                    ? '#E8A030'
-                    : 'white';
-                const duration = entry.end
-                  ? calculateDuration(entry.start, entry.end)
+                const isDraftRow = draftEntry?.id === entry.id;
+                const displayEntry = isDraftRow ? draftEntry : entry;
+                const color = isDraftRow
+                  ? 'yellow'
+                  : isCursor
+                    ? 'green'
+                    : isSelectedTask
+                      ? '#E8A030'
+                      : 'white';
+                const duration = displayEntry.end
+                  ? calculateDuration(displayEntry.start, displayEntry.end)
                   : 0;
+                const rowOverlaps = displayEntry.end
+                  ? findTimeEntryOverlaps(displayEntry, timeEntries)
+                  : [];
+                const overlapSummary = formatTimeEntryOverlapSummary(
+                  rowOverlaps,
+                  displayEntry,
+                );
                 const taskName = (entry.title || '').slice(0, 16);
 
                 return (
@@ -426,25 +512,46 @@ const View = ({height}) => {
                     </Box>
                     <Box width={19}>
                       <Text color={color}>
-                        {format(entry.start, 'yyyy-MM-dd HH:mm:ss')}
+                        {format(displayEntry.start, 'yyyy-MM-dd HH:mm:ss')}
                       </Text>
                     </Box>
                     <Box width={19}>
                       <Text color={color}>
-                        {entry.end ? (
-                          format(entry.end, 'yyyy-MM-dd HH:mm:ss')
+                        {displayEntry.end ? (
+                          format(displayEntry.end, 'yyyy-MM-dd HH:mm:ss')
                         ) : (
                           <Text color="yellow">Running...</Text>
                         )}
                       </Text>
                     </Box>
-                    <Text color={color}>
-                      {duration > 0 ? formatTime(duration) : '-'}
+                    <Box width={14}>
+                      <Text color={color}>
+                        {duration > 0 ? formatTime(duration) : '-'}
+                        {isDraftRow ? ' [draft]' : ''}
+                      </Text>
+                    </Box>
+                    <Text color={rowOverlaps.length > 0 ? 'red' : color}>
+                      {overlapSummary ? overlapSummary.slice(0, 40) : '-'}
                     </Text>
                   </Box>
                 );
               })}
             </ScrollBox>
+
+            {shouldShowOverlapInfo && (
+              <Box flexDirection="column" marginTop={1}>
+                <Text color={entryOverlaps.length > 0 ? 'red' : 'green'}>
+                  {entryOverlaps.length > 0
+                    ? `${draftEntry ? '⚠ Draft overlaps' : '⚠ Selected entry overlaps'} ${entryOverlaps.length} entr${entryOverlaps.length === 1 ? 'y' : 'ies'}`
+                    : '✓ No overlaps'}
+                </Text>
+                {entryOverlaps.slice(0, 3).map(overlap => (
+                  <Text key={overlap.entry.id} color="red">
+                    {`  - ${(overlap.entry.title || 'Entry').slice(0, 16)} ${format(overlap.entry.start, 'HH:mm')}-${format(overlap.entry.end, 'HH:mm')} by ${formatTime(overlap.overlapSeconds)}`}
+                  </Text>
+                ))}
+              </Box>
+            )}
           </Box>
         )}
       </Box>
@@ -687,9 +794,12 @@ const View = ({height}) => {
       </Frame.Header>
       <Frame.Body>{renderContent()}</Frame.Body>
       <Frame.Footer>
-        {activeSection === 'task' && selectedTaskId && hasTimeEntries && (
-          <HelpBottom>h/l:range j/k:entries e:edit d:delete</HelpBottom>
-        )}
+        {activeSection === 'task' && selectedTaskId && hasTimeEntries &&
+          (isAdjustingEntry ? (
+            <HelpBottom>j/k:move5 J/K:move30 h/l:duration5 H/L:duration30 Enter:save Esc:cancel</HelpBottom>
+          ) : (
+            <HelpBottom>h/l:range j/k:entries m:move e:edit d:delete</HelpBottom>
+          ))}
         {activeSection === 'project' && selectedProjectId && (
           <HelpBottom>h/l:range</HelpBottom>
         )}

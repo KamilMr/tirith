@@ -30,6 +30,14 @@ export const NavigationProvider = ({children}) => {
     // When input is locked, completely ignore all keys (forms handle their own input)
     if (inputLocked) return;
 
+    const currentHandler = componentKeyHandlers.current.get(focusedSection);
+    const specialKey = key.escape ? 'escape' : key.return ? 'return' : null;
+
+    if (currentHandler && specialKey && currentHandler[specialKey]) {
+      currentHandler[specialKey]();
+      return;
+    }
+
     if (key.escape) {
       setMode('normal');
       return;
@@ -40,7 +48,6 @@ export const NavigationProvider = ({children}) => {
     if (mode !== 'normal') return;
 
     // Component handlers get priority over global keys
-    const currentHandler = componentKeyHandlers.current.get(focusedSection);
     if (currentHandler && currentHandler[input]) {
       currentHandler[input]();
       return;
