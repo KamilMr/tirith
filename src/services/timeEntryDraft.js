@@ -1,5 +1,15 @@
-const moveDateByMinutes = (date, minutes) =>
-  new Date(new Date(date).getTime() + minutes * 60 * 1000);
+const createDateLike = (sourceDate, timestamp) => {
+  if (sourceDate?.constructor?.name === 'TZDate' && sourceDate.timeZone) {
+    return new sourceDate.constructor(new Date(timestamp), sourceDate.timeZone);
+  }
+
+  return new Date(timestamp);
+};
+
+const moveDateByMinutes = (date, minutes) => {
+  const movedTimestamp = new Date(date).getTime() + minutes * 60 * 1000;
+  return createDateLike(date, movedTimestamp);
+};
 
 export const moveTimeEntryByMinutes = (entry, minutes) => {
   if (!entry) return null;

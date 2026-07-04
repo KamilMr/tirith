@@ -1,4 +1,5 @@
 import {describe, it, expect} from 'vitest';
+import {TZDate} from '@date-fns/tz';
 import {
   moveTimeEntryByMinutes,
   resizeTimeEntryEndByMinutes,
@@ -21,6 +22,21 @@ describe('moveTimeEntryByMinutes', () => {
     expect(movedEntry.end - movedEntry.start).toBe(
       originalEntry.end - originalEntry.start,
     );
+  });
+
+  it('preserves timezone-aware dates while moving an entry', () => {
+    const originalEntry = {
+      id: 1,
+      start: new TZDate(2026, 0, 27, 10, 0, 0, 'Europe/Warsaw'),
+      end: new TZDate(2026, 0, 27, 11, 0, 0, 'Europe/Warsaw'),
+    };
+
+    const movedEntry = moveTimeEntryByMinutes(originalEntry, -180);
+
+    expect(movedEntry.start.constructor.name).toBe('TZDate');
+    expect(movedEntry.start.timeZone).toBe('Europe/Warsaw');
+    expect(movedEntry.start.getHours()).toBe(7);
+    expect(movedEntry.end.getHours()).toBe(8);
   });
 });
 
