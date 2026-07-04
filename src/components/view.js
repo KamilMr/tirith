@@ -22,6 +22,7 @@ import {formatTimeEntryOverlapSummary} from '../services/timeEntryOverlapSummary
 import {
   moveTimeEntryByMinutes,
   resizeTimeEntryEndByMinutes,
+  roundTimeEntryToFiveMinutes,
 } from '../services/timeEntryDraft.js';
 import KeyValue from './KeyValue.js';
 import RangeSelector from './RangeSelector.js';
@@ -205,7 +206,11 @@ const View = ({height}) => {
     const entryToAdjust = timeEntries[selectedEntryIndex];
     if (!entryToAdjust?.end) return;
 
-    setDraftEntry({...entryToAdjust});
+    setDraftEntry(roundTimeEntryToFiveMinutes(entryToAdjust));
+  };
+
+  const roundDraftEntry = () => {
+    setDraftEntry(prev => roundTimeEntryToFiveMinutes(prev));
   };
 
   const moveDraftEntry = minutes => {
@@ -288,6 +293,7 @@ const View = ({height}) => {
       {key: 'h', action: () => resizeDraftEntry(-5)},
       {key: 'L', action: () => resizeDraftEntry(30)},
       {key: 'H', action: () => resizeDraftEntry(-30)},
+      {key: 'r', action: roundDraftEntry},
       {key: 'return', action: saveDraftEntry},
       {key: 'escape', action: cancelEntryAdjustment},
     ];
@@ -796,7 +802,7 @@ const View = ({height}) => {
       <Frame.Footer>
         {activeSection === 'task' && selectedTaskId && hasTimeEntries &&
           (isAdjustingEntry ? (
-            <HelpBottom>j/k:move5 J/K:move30 h/l:duration5 H/L:duration30 Enter:save Esc:cancel</HelpBottom>
+            <HelpBottom>j/k:move5 J/K:move30 h/l:duration5 H/L:duration30 r:round Enter:save Esc:cancel</HelpBottom>
           ) : (
             <HelpBottom>h/l:range j/k:entries m:move e:edit d:delete</HelpBottom>
           ))}
