@@ -46,6 +46,7 @@ const Tasks = ({height}) => {
   const [isEditingEstimation, setIsEditingEstimation] = useState(false);
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
   const [isSelectingCategory, setIsSelectingCategory] = useState(false);
+  const [isAddingManualTime, setIsAddingManualTime] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedDate, setSelectedDate] = useState(retriveYYYYMMDD());
@@ -334,6 +335,35 @@ const Tasks = ({height}) => {
     setMessage('');
   };
 
+  const handleAddManualTime = () => {
+    if (!selectedTaskId) {
+      setMessage('No task selected');
+      return;
+    }
+    setIsAddingManualTime(true);
+    setMessage('');
+  };
+
+  const handleManualTimeSubmit = async input => {
+    try {
+      const result = await taskService.addManualTimeEntry({
+        taskId: selectedTaskId,
+        input,
+        selectedDate,
+      });
+      setIsAddingManualTime(false);
+      setMessage(`Added ${result.durationMinutes}m manual time`);
+      triggerReload();
+    } catch (error) {
+      setMessage(`Error: ${error.message}`);
+    }
+  };
+
+  const handleManualTimeCancel = () => {
+    setIsAddingManualTime(false);
+    setMessage('');
+  };
+
   const handleStartStopTask = async () => {
     if (!selectedTaskId) {
       setMessage('No task selected');
@@ -424,6 +454,7 @@ const Tasks = ({height}) => {
     {key: 'M', action: handleEditMetadata},
     {key: 'C', action: handleQuickCategory},
     {key: 'X', action: handleToggleExploration},
+    {key: 'a', action: handleAddManualTime},
     {key: 'd', action: handleDeleteTask},
     {key: 'j', action: selectNextUniqueTask},
     {key: 'k', action: selectPreviousUniqueTask},
@@ -444,6 +475,7 @@ const Tasks = ({height}) => {
     isEditingEstimation ||
     isEditingMetadata ||
     isSelectingCategory ||
+    isAddingManualTime ||
     isDeleting ||
     isSearching;
   const taskCount = dateTasks.length;
@@ -473,6 +505,7 @@ const Tasks = ({height}) => {
           isEditingEstimation={isEditingEstimation}
           isEditingMetadata={isEditingMetadata}
           isSelectingCategory={isSelectingCategory}
+          isAddingManualTime={isAddingManualTime}
           isDeleting={isDeleting}
           isSearching={isSearching}
           dateTasks={dateTasks}
@@ -498,6 +531,8 @@ const Tasks = ({height}) => {
           handleMetadataCancel={handleMetadataCancel}
           handleCategorySelect={handleCategorySelect}
           handleCategoryCancel={handleCategoryCancel}
+          handleManualTimeSubmit={handleManualTimeSubmit}
+          handleManualTimeCancel={handleManualTimeCancel}
           handleDeleteConfirm={handleDeleteConfirm}
           handleDeleteCancel={handleDeleteCancel}
           handleSearchSubmit={handleSearchSubmit}
@@ -508,7 +543,7 @@ const Tasks = ({height}) => {
       <Frame.Footer>
         {isTasksFocused && mode === 'normal' && !isInEditMode && (
           <HelpBottom>
-            j/k:nav c:new /:search i:edit E:est M:meta C:cat d:del s:start
+            j/k:nav c:new /:search i:edit E:est M:meta C:cat a:add d:del s:start
             P:pomodoro p/n:day
           </HelpBottom>
         )}
