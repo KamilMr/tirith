@@ -4,6 +4,7 @@ import TaskEditingForm from './TaskEditingForm.js';
 import EstimationEditingForm from './EstimationEditingForm.js';
 import MetadataEditingForm from './MetadataEditingForm.js';
 import CategoryQuickSelect from './CategoryQuickSelect.js';
+import ManualTimeEntryForm from './ManualTimeEntryForm.js';
 import NoProjectSelected from './NoProjectSelected.js';
 import NoTasksFound from './NoTasksFound.js';
 import TasksList from './TasksList.js';
@@ -17,6 +18,7 @@ const TasksContent = ({
   isEditingEstimation,
   isEditingMetadata,
   isSelectingCategory,
+  isAddingManualTime,
   isDeleting,
   isSearching,
   dateTasks,
@@ -37,6 +39,8 @@ const TasksContent = ({
   handleMetadataCancel,
   handleCategorySelect,
   handleCategoryCancel,
+  handleManualTimeSubmit,
+  handleManualTimeCancel,
   handleDeleteConfirm,
   handleDeleteCancel,
   handleSearchSubmit,
@@ -101,6 +105,16 @@ const TasksContent = ({
         currentCategory={selectedTaskMetadata?.category}
         onSelect={handleCategorySelect}
         onCancel={handleCategoryCancel}
+      />
+    );
+  }
+
+  if (isAddingManualTime) {
+    return (
+      <ManualTimeEntryForm
+        taskTitle={selectedTaskTitle}
+        onSubmit={handleManualTimeSubmit}
+        onCancel={handleManualTimeCancel}
       />
     );
   }

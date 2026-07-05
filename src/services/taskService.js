@@ -1,6 +1,8 @@
 import taskModel from '../models/task.js';
 import timeEntryModel from '../models/timeEntry.js';
 import projectModel from '../models/project.js';
+import {findTimeEntryOverlaps} from './timeEntryOverlap.js';
+import {parseManualTimeEntryInput} from './manualTimeEntryParser.js';
 import {
   getLocalNow,
   retriveYYYYMMDD,
@@ -143,6 +145,50 @@ const taskService = {
       throw new Error('Provided entry ID does not match the active entry');
 
     return timeEntryModel.update({id, end});
+  },
+
+  addManualTimeEntry: async ({
+    taskId,
+    input,
+    selectedDate = retriveYYYYMMDD(),
+  }) => {
+    const task = await taskModel.selectById(taskId);
+    if (!task) throw new Error('Task does not exist');
+
+    const parsed = parseManualTimeEntryInput({input, selectedDate});
+    if (new Date(parsed.start).getTime() >= new Date(parsed.end).getTime())
+      throw new Error('End time must be after start time');
+
+    const activeEntry = await timeEntryModel.selectActiveEntry();
+    if (
+      activeEntry &&
+      new Date(parsed.end).getTime() > new Date(activeEntry.start).getTime()
+    )
+      throw new Error(
+        'Stop the active task before adding overlapping manual time',
+      );
+
+    const dateStr = retriveYYYYMMDD(parsed.start);
+    const entries = await timeEntryModel.selectByDate(dateStr);
+    const overlaps = findTimeEntryOverlaps(
+      {id: null, start: parsed.start, end: parsed.end},
+      entries,
+    );
+
+    if (overlaps.length > 0) {
+      const overlap = overlaps[0];
+      const start = overlap.overlapStart.toTimeString().slice(0, 5);
+      const end = overlap.overlapEnd.toTimeString().slice(0, 5);
+      throw new Error(`Manual time overlaps existing entry ${start}-${end}`);
+    }
+
+    const [entryId] = await timeEntryModel.create({
+      taskId,
+      start: parsed.start,
+      end: parsed.end,
+    });
+
+    return {entryId, taskId, ...parsed};
   },
 
   selectAll: () => taskModel.listAll(),
