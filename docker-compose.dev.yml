@@ -4,7 +4,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - '3307:3306'
+      - '3311:3306'
     volumes:
       - ~/data/tirith-dev/mysql:/var/lib/mysql
     healthcheck:

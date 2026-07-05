@@ -7,7 +7,9 @@ import TasksContent from './tasks/TasksContent.js';
 import TodayHours from './TodayHours.js';
 import taskService from '../services/taskService.js';
 import projectService from '../services/projectService.js';
+import pomodoroService from '../services/pomodoroService.js';
 import useDateTasks from '../hooks/useDateTasks.js';
+import usePomodoroStatus from '../hooks/usePomodoroStatus.js';
 import {BORDER_COLOR_DEFAULT, BORDER_COLOR_FOCUSED, TASKS} from '../consts.js';
 import {getDayOfWeek, retriveYYYYMMDD} from '../utils.js';
 import {useComponentKeys} from '../hooks/useComponentKeys.js';
@@ -15,6 +17,15 @@ import {useNavigation} from '../contexts/NavigationContext.js';
 import {useData} from '../contexts/DataContext.js';
 import createTogglSync from '../toggl-sync/index.js';
 import syncedDay from '../models/syncedDay.js';
+
+const formatPomodoroStatus = status => {
+  if (!status) return null;
+
+  const phase = status.status === 'work' ? 'Work' : 'Break';
+  const breakType = status.breakType === 'long' ? 'long' : 'short';
+  const suffix = status.status === 'break' ? ` ${breakType}` : '';
+  return `${phase}${suffix} #${status.sessionNumber}: ${status.remainingText}`;
+};
 
 const Tasks = ({height}) => {
   const {isTasksFocused, getBorderTitle, mode} = useNavigation();
@@ -41,6 +52,7 @@ const Tasks = ({height}) => {
   const [isSynced, setIsSynced] = useState(false);
 
   const dateTasks = useDateTasks(selectedDate);
+  const pomodoroStatus = usePomodoroStatus();
   const selectedTask = dateTasks.find(t => t.id === selectedTaskId);
 
   useEffect(() => {
@@ -68,6 +80,8 @@ const Tasks = ({height}) => {
     };
     checkSyncStatus();
   }, [selectedDate, selectedClientId]);
+
+  useEffect(() => pomodoroService.subscribe(triggerReload), [triggerReload]);
 
   const borderColor = isTasksFocused
     ? BORDER_COLOR_FOCUSED
@@ -119,6 +133,7 @@ const Tasks = ({height}) => {
   const handleSearchSubmit = async title => {
     if (!title.trim()) return;
     try {
+      await pomodoroService.stopActivePomodoro();
       const result = await taskService.toggleTask({
         title: title.trim(),
         projectId: selectedProjectId,
@@ -187,6 +202,7 @@ const Tasks = ({height}) => {
   const handleCreateSubmit = async title => {
     if (!title.trim()) return;
     try {
+      await pomodoroService.stopActivePomodoro();
       const result = await taskService.toggleTask({
         title: title.trim(),
         projectId: selectedProjectId,
@@ -324,7 +340,31 @@ const Tasks = ({height}) => {
       return;
     }
     try {
+      await pomodoroService.stopActivePomodoro();
       await taskService.toggleTaskById({taskId: selectedTaskId});
+      triggerReload();
+    } catch (error) {
+      setMessage(`Error: ${error.message}`);
+    }
+  };
+
+  const handlePomodoroStartStop = async () => {
+    if (!selectedTaskId) {
+      setMessage('No task selected');
+      return;
+    }
+    if (selectedDate !== retriveYYYYMMDD()) {
+      setMessage('Pomodoro can only start for today');
+      return;
+    }
+
+    try {
+      const result = await pomodoroService.togglePomodoro(selectedTaskId);
+      setMessage(
+        result.action === 'stopped'
+          ? 'Pomodoro stopped'
+          : `Pomodoro ${result.action}`,
+      );
       triggerReload();
     } catch (error) {
       setMessage(`Error: ${error.message}`);
@@ -388,6 +428,7 @@ const Tasks = ({height}) => {
     {key: 'j', action: selectNextUniqueTask},
     {key: 'k', action: selectPreviousUniqueTask},
     {key: 's', action: handleStartStopTask},
+    {key: 'P', action: handlePomodoroStartStop},
     {key: 'p', action: handlePreviousDay},
     {key: 'n', action: handleNextDay},
     {key: 'x', action: handleSetIsT1},
@@ -414,6 +455,12 @@ const Tasks = ({height}) => {
           {baseTitle}
           {taskCount > 0 && <Text dimColor> ({taskCount})</Text>} -{' '}
           <TodayHours selectedDate={selectedDate} isT1={isT1} /> - {dateDisplay}
+          {pomodoroStatus && (
+            <Text color="magenta">
+              {' '}
+              - {formatPomodoroStatus(pomodoroStatus)}
+            </Text>
+          )}
         </Text>
         <DelayedDisappear key={message}>
           <Text color="yellow">{message}</Text>
@@ -462,7 +509,7 @@ const Tasks = ({height}) => {
         {isTasksFocused && mode === 'normal' && !isInEditMode && (
           <HelpBottom>
             j/k:nav c:new /:search i:edit E:est M:meta C:cat d:del s:start
-            p/n:day
+            P:pomodoro p/n:day
           </HelpBottom>
         )}
       </Frame.Footer>
