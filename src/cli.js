@@ -1,20 +1,33 @@
 #!/usr/bin/env node
 
 import {program} from 'commander';
+import logger from './services/loggerService.js';
 import db from './db/db.js';
-import {create, toggle, toggleName, active, list, stop} from './commands/task.js';
+
+logger.setupErrorLogging();
+import {
+  create,
+  toggle,
+  toggleName,
+  active,
+  list,
+  stop,
+} from './commands/task.js';
 import {list as listProjects} from './commands/project.js';
 
-const run = fn => async (...args) => {
-  try {
-    await fn(...args);
-  } catch (err) {
-    console.log(JSON.stringify({error: err.message}));
-    process.exitCode = 1;
-  } finally {
-    await db.destroy();
-  }
-};
+const run =
+  fn =>
+  async (...args) => {
+    try {
+      await fn(...args);
+    } catch (err) {
+      logger.error('cli.command', err);
+      console.log(JSON.stringify({error: err.message}));
+      process.exitCode = 1;
+    } finally {
+      await db.destroy();
+    }
+  };
 
 const task = program.command('task');
 

@@ -65,6 +65,9 @@ services:
       - .env
     environment:
       MYSQL_HOST: db
+      ERROR_LOG_FILE: /app/logs/tirith-error.log
+    volumes:
+      - ./logs:/app/logs
     stdin_open: true
     tty: true
     restart: unless-stopped

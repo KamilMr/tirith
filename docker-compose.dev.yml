@@ -64,8 +64,10 @@ services:
       - .env
     environment:
       MYSQL_HOST: db
+      ERROR_LOG_FILE: /app/logs/tirith-error.log
     volumes:
       - ./dist:/app/dist
+      - ./logs:/app/logs
     command: node --watch ./dist/index.js
     stdin_open: true
     tty: true
