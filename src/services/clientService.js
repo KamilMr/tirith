@@ -1,6 +1,4 @@
 import cliModel from '../models/client.js';
-import projectModel from '../models/project.js';
-import taskService from './taskService.js';
 import clientRateHistory from '../models/clientRateHistory.js';
 import {retriveYYYYMMDD} from '../utils.js';
 
@@ -17,16 +15,7 @@ const clientService = {
     return cliModel.listAll();
   },
 
-  delete: async client => {
-    const projects = await projectModel.selectByCliId(client.id);
-
-    for (const project of projects) {
-      await taskService.deleteByProject(project.id);
-      await projectModel.delete(project.id);
-    }
-
-    return cliModel.delete(client.id);
-  },
+  delete: client => cliModel.delete(client.id),
 
   update: (id, name) => {
     if (!name || name.trim().length === 0)

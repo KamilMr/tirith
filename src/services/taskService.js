@@ -249,11 +249,7 @@ const taskService = {
     return newValue;
   },
 
-  delete: async id => {
-    // Delete all time entries for this task first
-    await timeEntryModel.deleteByTaskId(id);
-    return taskModel.delete(id);
-  },
+  delete: id => taskModel.delete(id),
 
   deleteByTitleAndDate: async (title, projectId, date) => {
     // Find task by title and project
@@ -270,14 +266,6 @@ const taskService = {
     }
 
     return taskEntries.length;
-  },
-
-  deleteByProject: async projectId => {
-    const tasks = await taskModel.selectByProjectId(projectId);
-    for (const task of tasks) {
-      await timeEntryModel.deleteByTaskId(task.id);
-    }
-    return taskModel.deleteByProjectId(projectId);
   },
 
   getTodayHours: async (projectId = null) => {

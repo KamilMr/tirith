@@ -1,5 +1,4 @@
 import projectModel from '../models/project.js';
-import taskService from './taskService.js';
 import {mapToCamel} from '../utils.js';
 
 const projectService = {
@@ -20,10 +19,7 @@ const projectService = {
     return projectModel.selectByCliId(id);
   },
 
-  delete: async project => {
-    await taskService.deleteByProject(project.id);
-    return projectModel.delete(project.id);
-  },
+  delete: project => projectModel.delete(project.id),
 
   update: (id, name) => {
     if (!name || name.trim().length === 0)

@@ -118,8 +118,6 @@ const timeEntry = {
 
   delete: id => db(TABLE).where('id', id).del(),
 
-  deleteByTaskId: taskId => db(TABLE).where('task_id', taskId).del(),
-
   getTodayEntriesByProject: async (date, projectId = null) => {
     const {start, end} = getUTCDateRange(date);
     let query = db(TABLE)

@@ -84,9 +84,6 @@ const task = {
   },
 
   delete: id => db(TABLE).where('id', id).del(),
-
-  deleteByProjectId: projectId =>
-    db(TABLE).where('project_id', projectId).del(),
 };
 
 export default task;
