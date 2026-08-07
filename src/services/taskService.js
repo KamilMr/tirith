@@ -268,14 +268,6 @@ const taskService = {
     return taskEntries.length;
   },
 
-  deleteByProject: async projectId => {
-    const tasks = await taskModel.selectByProjectId(projectId);
-    for (const task of tasks) {
-      await timeEntryModel.deleteByTaskId(task.id);
-    }
-    return taskModel.deleteByProjectId(projectId);
-  },
-
   getTodayHours: async (projectId = null) => {
     const today = retriveYYYYMMDD();
     const entries = await timeEntryModel.getTodayEntriesByProject(
