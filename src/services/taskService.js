@@ -249,11 +249,7 @@ const taskService = {
     return newValue;
   },
 
-  delete: async id => {
-    // Delete all time entries for this task first
-    await timeEntryModel.deleteByTaskId(id);
-    return taskModel.delete(id);
-  },
+  delete: id => taskModel.delete(id),
 
   deleteByTitleAndDate: async (title, projectId, date) => {
     // Find task by title and project
