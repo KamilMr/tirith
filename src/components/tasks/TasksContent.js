@@ -114,6 +114,7 @@ const TasksContent = ({
     return (
       <ManualTimeEntryForm
         taskTitle={selectedTaskTitle}
+        projectId={selectedProjectId}
         onSubmit={handleManualTimeSubmit}
         onCancel={handleManualTimeCancel}
       />

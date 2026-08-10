@@ -336,23 +336,25 @@ const Tasks = ({height}) => {
   };
 
   const handleAddManualTime = () => {
-    if (!selectedTaskId) {
-      setMessage('No task selected');
+    if (!selectedProjectId) {
+      setMessage('Select a project first');
       return;
     }
     setIsAddingManualTime(true);
     setMessage('');
   };
 
-  const handleManualTimeSubmit = async input => {
+  const handleManualTimeSubmit = async ({title, input}) => {
     try {
-      const result = await taskService.addManualTimeEntry({
-        taskId: selectedTaskId,
+      const result = await taskService.addManualTimeEntryByTitle({
+        title,
+        projectId: selectedProjectId,
         input,
         selectedDate,
       });
       setIsAddingManualTime(false);
-      setMessage(`Added ${result.durationMinutes}m manual time`);
+      setSelectedTaskId(result.taskId);
+      setMessage(`Added ${result.durationMinutes}m manual time to ${title}`);
       triggerReload();
     } catch (error) {
       setMessage(`Error: ${error.message}`);

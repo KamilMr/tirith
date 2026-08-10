@@ -37,6 +37,47 @@ const validateMetadata = ({epic, category, scope}) => {
     );
 };
 
+const prepareManualTimeEntry = async ({input, selectedDate}) => {
+  const parsed = parseManualTimeEntryInput({input, selectedDate});
+  if (new Date(parsed.start).getTime() >= new Date(parsed.end).getTime())
+    throw new Error('End time must be after start time');
+
+  const activeEntry = await timeEntryModel.selectActiveEntry();
+  if (
+    activeEntry &&
+    new Date(parsed.end).getTime() > new Date(activeEntry.start).getTime()
+  )
+    throw new Error(
+      'Stop the active task before adding overlapping manual time',
+    );
+
+  const dateStr = retriveYYYYMMDD(parsed.start);
+  const entries = await timeEntryModel.selectByDate(dateStr);
+  const overlaps = findTimeEntryOverlaps(
+    {id: null, start: parsed.start, end: parsed.end},
+    entries,
+  );
+
+  if (overlaps.length > 0) {
+    const overlap = overlaps[0];
+    const start = overlap.overlapStart.toTimeString().slice(0, 5);
+    const end = overlap.overlapEnd.toTimeString().slice(0, 5);
+    throw new Error(`Manual time overlaps existing entry ${start}-${end}`);
+  }
+
+  return parsed;
+};
+
+const saveManualTimeEntry = async (taskId, parsed) => {
+  const [entryId] = await timeEntryModel.create({
+    taskId,
+    start: parsed.start,
+    end: parsed.end,
+  });
+
+  return {entryId, taskId, ...parsed};
+};
+
 const taskService = {
   create: async ({title, projectId, estimatedMinutes = null}) => {
     if (!title || title.trim().length === 0)
@@ -155,40 +196,31 @@ const taskService = {
     const task = await taskModel.selectById(taskId);
     if (!task) throw new Error('Task does not exist');
 
-    const parsed = parseManualTimeEntryInput({input, selectedDate});
-    if (new Date(parsed.start).getTime() >= new Date(parsed.end).getTime())
-      throw new Error('End time must be after start time');
+    const parsed = await prepareManualTimeEntry({input, selectedDate});
+    return saveManualTimeEntry(taskId, parsed);
+  },
 
-    const activeEntry = await timeEntryModel.selectActiveEntry();
-    if (
-      activeEntry &&
-      new Date(parsed.end).getTime() > new Date(activeEntry.start).getTime()
-    )
-      throw new Error(
-        'Stop the active task before adding overlapping manual time',
-      );
+  addManualTimeEntryByTitle: async ({
+    title,
+    projectId,
+    input,
+    selectedDate = retriveYYYYMMDD(),
+  }) => {
+    const cleanedTitle = title?.trim();
+    if (!cleanedTitle) throw new Error('Task title cannot be empty');
+    if (cleanedTitle.length > 100)
+      throw new Error('Task title cannot exceed 100 characters');
 
-    const dateStr = retriveYYYYMMDD(parsed.start);
-    const entries = await timeEntryModel.selectByDate(dateStr);
-    const overlaps = findTimeEntryOverlaps(
-      {id: null, start: parsed.start, end: parsed.end},
-      entries,
-    );
+    const project = await projectModel.selectProject(projectId);
+    if (!project) throw new Error('Project does not exist');
 
-    if (overlaps.length > 0) {
-      const overlap = overlaps[0];
-      const start = overlap.overlapStart.toTimeString().slice(0, 5);
-      const end = overlap.overlapEnd.toTimeString().slice(0, 5);
-      throw new Error(`Manual time overlaps existing entry ${start}-${end}`);
-    }
-
-    const [entryId] = await timeEntryModel.create({
-      taskId,
-      start: parsed.start,
-      end: parsed.end,
+    const parsed = await prepareManualTimeEntry({input, selectedDate});
+    const task = await taskModel.getOrCreate({
+      title: cleanedTitle,
+      projectId,
     });
 
-    return {entryId, taskId, ...parsed};
+    return saveManualTimeEntry(task.id, parsed);
   },
 
   selectAll: () => taskModel.listAll(),
