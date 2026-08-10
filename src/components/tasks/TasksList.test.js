@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {getVisibleTaskCount} from '../../layout/sidebarLayout.js';
+import {getVisibleTaskCount} from './taskListLayout.js';
 
 describe('getVisibleTaskCount', () => {
   it('shows one task in a compact panel', () => {
