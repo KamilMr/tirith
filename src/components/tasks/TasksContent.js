@@ -13,6 +13,7 @@ import AutocompleteTextInput from '../AutocompleteTextInput.js';
 import {formatEstimation} from '../../utils.js';
 
 const TasksContent = ({
+  panelHeight,
   isCreating,
   isEditing,
   isEditingEstimation,
@@ -143,6 +144,7 @@ const TasksContent = ({
 
   return (
     <TasksList
+      panelHeight={panelHeight}
       selectedProject={selectedProject}
       dateDisplay={dateDisplay}
       dateTasks={dateTasks}

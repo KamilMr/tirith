@@ -3,15 +3,14 @@ import {Box} from 'ink';
 import NameAndDetails from './NameAndDetails.js';
 import ScrollBox from '../ScrollBox.js';
 import {formatTime} from '../../utils.js';
+import {getVisibleTaskCount} from '../../layout/sidebarLayout.js';
 
-const VISIBLE_TASKS = 10;
-
-const TasksList = ({dateTasks, selectedTaskId, isT1}) => {
+const TasksList = ({panelHeight, dateTasks, selectedTaskId, isT1}) => {
   const selectedIndex = dateTasks.findIndex(t => t.id === selectedTaskId);
 
   return (
     <ScrollBox
-      height={VISIBLE_TASKS}
+      height={getVisibleTaskCount(panelHeight)}
       selectedIndex={selectedIndex}
       itemCount={dateTasks.length}
     >

@@ -500,6 +500,7 @@ const Tasks = ({height}) => {
       </Frame.Header>
       <Frame.Body>
         <TasksContent
+          panelHeight={height}
           isCreating={isCreating}
           isEditing={isEditing}
           isEditingEstimation={isEditingEstimation}
