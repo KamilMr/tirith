@@ -20,11 +20,17 @@ export const useNavigation = () => {
 
 export const NavigationProvider = ({children}) => {
   const [focusedSection, setFocusedSection] = useState(CLIENT);
+  const [activeSidebarSection, setActiveSidebarSection] = useState(CLIENT);
   const [mode, setMode] = useState('normal');
   const [inputLocked, setInputLocked] = useState(false);
 
   const {exit} = useApp();
   const componentKeyHandlers = useRef(new Map());
+
+  const focusSection = section => {
+    setFocusedSection(section);
+    if (section !== VIEW) setActiveSidebarSection(section);
+  };
 
   useInput((input, key) => {
     // When input is locked, completely ignore all keys (forms handle their own input)
@@ -57,13 +63,13 @@ export const NavigationProvider = ({children}) => {
       const sections = [VIEW, CLIENT, PROJECTS, TASKS];
       const currentIndex = sections.indexOf(focusedSection);
       const nextIndex = (currentIndex + 1) % sections.length;
-      setFocusedSection(sections[nextIndex]);
+      focusSection(sections[nextIndex]);
     }
 
-    if (input === '0') setFocusedSection(VIEW);
-    if (input === '1') setFocusedSection(CLIENT);
-    if (input === '2') setFocusedSection(PROJECTS);
-    if (input === '3') setFocusedSection(TASKS);
+    if (input === '0') focusSection(VIEW);
+    if (input === '1') focusSection(CLIENT);
+    if (input === '2') focusSection(PROJECTS);
+    if (input === '3') focusSection(TASKS);
   });
 
   const registerKeyHandler = (componentId, keyHandler) => {
@@ -82,6 +88,7 @@ export const NavigationProvider = ({children}) => {
 
   const value = {
     focusedSection,
+    activeSidebarSection,
     currentView: mapViewsToNum[focusedSection],
     isViewFocused: focusedSection === VIEW,
     isClientFocused: focusedSection === CLIENT,

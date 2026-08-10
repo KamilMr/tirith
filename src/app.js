@@ -5,26 +5,28 @@ import Projects from './components/projects.js';
 import Tasks from './components/tasks.js';
 import View from './components/view.js';
 import StatusBar from './components/StatusBar.js';
-import {NavigationProvider} from './contexts/NavigationContext.js';
+import {
+  NavigationProvider,
+  useNavigation,
+} from './contexts/NavigationContext.js';
 import {DataProvider} from './contexts/DataContext.js';
 import useTerminalSize from './hooks/useTerminalSize.js';
+import {getSidebarHeights} from './layout/sidebarLayout.js';
 import pkg from '../package.json' with {type: 'json'};
 
 const LAYOUT = {
   leftColumnWidth: 40,
-  clientHeight: 15,
-  projectHeight: 37,
-  taskHeight: 48,
 };
 
 const AppContent = () => {
   const [, rows] = useTerminalSize();
-
-  const clientHeight = Math.floor((rows * LAYOUT.clientHeight) / 100);
-  const projectHeight = Math.floor((rows * LAYOUT.projectHeight) / 100);
-  const taskHeight = Math.floor((rows * LAYOUT.taskHeight) / 100);
-
+  const {focusedSection, activeSidebarSection} = useNavigation();
   const mainHeight = rows - 1;
+  const {clientHeight, projectHeight, taskHeight} = getSidebarHeights({
+    mainHeight,
+    focusedSection,
+    activeSidebarSection,
+  });
 
   return (
     <Box height={rows} flexDirection="column">
