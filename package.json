@@ -1,6 +1,6 @@
 {
   "name": "tirith",
-  "version": "1.0.40",
+  "version": "1.0.41",
   "description": "Terminal-based time tracker with vim keybindings",
   "homepage": "https://github.com/KamilMr/tirith#readme",
   "author": "kamil.mrowka@gmail.com",
