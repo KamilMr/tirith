@@ -8,7 +8,6 @@ import ManualTimeEntryForm from './ManualTimeEntryForm.js';
 import NoProjectSelected from './NoProjectSelected.js';
 import NoTasksFound from './NoTasksFound.js';
 import TasksList from './TasksList.js';
-import VimTextInput from '../VimTextInput.js';
 import AutocompleteTextInput from '../AutocompleteTextInput.js';
 import {formatEstimation} from '../../utils.js';
 
@@ -20,16 +19,13 @@ const TasksContent = ({
   isEditingMetadata,
   isSelectingCategory,
   isAddingManualTime,
-  isDeleting,
   isSearching,
-  dateTasks,
+  projectTasks,
   selectedProject,
   selectedTaskId,
   selectedTaskTitle,
   selectedTaskEstimationMinutes,
   selectedTaskMetadata,
-  dateDisplay,
-  isT1,
   handleCreateSubmit,
   handleCreateCancel,
   handleEditSubmit,
@@ -42,8 +38,6 @@ const TasksContent = ({
   handleCategoryCancel,
   handleManualTimeSubmit,
   handleManualTimeCancel,
-  handleDeleteConfirm,
-  handleDeleteCancel,
   handleSearchSubmit,
   handleSearchCancel,
   selectedProjectId,
@@ -121,36 +115,16 @@ const TasksContent = ({
     );
   }
 
-  if (isDeleting) {
-    return (
-      <VimTextInput
-        label={`Delete "${selectedTaskTitle}"? (y/n)`}
-        defaultValue=""
-        onSubmit={handleDeleteConfirm}
-        onCancel={handleDeleteCancel}
-      />
-    );
-  }
-
   if (!selectedProject) return <NoProjectSelected />;
 
-  if (dateTasks.length === 0) {
-    return (
-      <NoTasksFound
-        projectName={selectedProject.name}
-        dateDisplay={dateDisplay}
-      />
-    );
-  }
+  if (projectTasks.length === 0)
+    return <NoTasksFound projectName={selectedProject.name} />;
 
   return (
     <TasksList
       panelHeight={panelHeight}
-      selectedProject={selectedProject}
-      dateDisplay={dateDisplay}
-      dateTasks={dateTasks}
+      projectTasks={projectTasks}
       selectedTaskId={selectedTaskId}
-      isT1={isT1}
     />
   );
 };

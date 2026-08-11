@@ -8,7 +8,7 @@ import TodayHours from './TodayHours.js';
 import taskService from '../services/taskService.js';
 import projectService from '../services/projectService.js';
 import pomodoroService from '../services/pomodoroService.js';
-import useDateTasks from '../hooks/useDateTasks.js';
+import useProjectTasks from '../hooks/useProjectTasks.js';
 import usePomodoroStatus from '../hooks/usePomodoroStatus.js';
 import {BORDER_COLOR_DEFAULT, BORDER_COLOR_FOCUSED, TASKS} from '../consts.js';
 import {getDayOfWeek, retriveYYYYMMDD} from '../utils.js';
@@ -47,14 +47,13 @@ const Tasks = ({height}) => {
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
   const [isSelectingCategory, setIsSelectingCategory] = useState(false);
   const [isAddingManualTime, setIsAddingManualTime] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedDate, setSelectedDate] = useState(retriveYYYYMMDD());
   const [isSynced, setIsSynced] = useState(false);
 
-  const dateTasks = useDateTasks(selectedDate);
+  const projectTasks = useProjectTasks();
   const pomodoroStatus = usePomodoroStatus();
-  const selectedTask = dateTasks.find(t => t.id === selectedTaskId);
+  const selectedTask = projectTasks.find(t => t.id === selectedTaskId);
 
   useEffect(() => {
     const loadProject = async () => {
@@ -70,9 +69,9 @@ const Tasks = ({height}) => {
   }, [selectedProjectId, reload]);
 
   useEffect(() => {
-    if (dateTasks.length > 0 && !selectedTaskId)
-      setSelectedTaskId(dateTasks[0]?.id);
-  }, [selectedProjectId, dateTasks]);
+    if (projectTasks.length > 0 && !selectedTaskId)
+      setSelectedTaskId(projectTasks[0]?.id);
+  }, [selectedProjectId, projectTasks]);
 
   useEffect(() => {
     const checkSyncStatus = async () => {
@@ -94,23 +93,23 @@ const Tasks = ({height}) => {
     getDayOfWeek(new Date(selectedDate));
 
   const selectNextUniqueTask = () => {
-    if (dateTasks.length === 0) return;
-    const currentIndex = dateTasks.findIndex(
+    if (projectTasks.length === 0) return;
+    const currentIndex = projectTasks.findIndex(
       task => task.id === selectedTaskId,
     );
     const nextIndex =
-      currentIndex < dateTasks.length - 1 ? currentIndex + 1 : 0;
-    setSelectedTaskId(dateTasks[nextIndex].id);
+      currentIndex < projectTasks.length - 1 ? currentIndex + 1 : 0;
+    setSelectedTaskId(projectTasks[nextIndex].id);
   };
 
   const selectPreviousUniqueTask = () => {
-    if (dateTasks.length === 0) return;
-    const currentIndex = dateTasks.findIndex(
+    if (projectTasks.length === 0) return;
+    const currentIndex = projectTasks.findIndex(
       task => task.id === selectedTaskId,
     );
     const prevIndex =
-      currentIndex > 0 ? currentIndex - 1 : dateTasks.length - 1;
-    setSelectedTaskId(dateTasks[prevIndex].id);
+      currentIndex > 0 ? currentIndex - 1 : projectTasks.length - 1;
+    setSelectedTaskId(projectTasks[prevIndex].id);
   };
 
   const handleNewTask = () => {
@@ -160,44 +159,6 @@ const Tasks = ({height}) => {
     }
     setIsEditing(true);
     setMessage('');
-  };
-
-  const handleDeleteTask = () => {
-    if (!selectedTaskId || !selectedTask) {
-      setMessage('No task selected');
-      return;
-    }
-    setIsDeleting(true);
-    setMessage('');
-  };
-
-  const handleDeleteConfirm = async confirmation => {
-    if (
-      confirmation.toLowerCase() === 'y' ||
-      confirmation.toLowerCase() === 'yes'
-    ) {
-      try {
-        await taskService.deleteByTitleAndDate(
-          selectedTask.title,
-          selectedProjectId,
-          selectedDate,
-        );
-        triggerReload();
-        setMessage(
-          `Deleted ${selectedTask.title} entries from ${selectedDate === retriveYYYYMMDD() ? 'today' : selectedDate}`,
-        );
-      } catch (error) {
-        setMessage(`Error deleting task: ${error.message}`);
-      }
-    } else {
-      setMessage('Delete cancelled');
-    }
-    setIsDeleting(false);
-  };
-
-  const handleDeleteCancel = () => {
-    setIsDeleting(false);
-    setMessage('Delete cancelled');
   };
 
   const handleCreateSubmit = async title => {
@@ -457,7 +418,6 @@ const Tasks = ({height}) => {
     {key: 'C', action: handleQuickCategory},
     {key: 'X', action: handleToggleExploration},
     {key: 'a', action: handleAddManualTime},
-    {key: 'd', action: handleDeleteTask},
     {key: 'j', action: selectNextUniqueTask},
     {key: 'k', action: selectPreviousUniqueTask},
     {key: 's', action: handleStartStopTask},
@@ -478,9 +438,8 @@ const Tasks = ({height}) => {
     isEditingMetadata ||
     isSelectingCategory ||
     isAddingManualTime ||
-    isDeleting ||
     isSearching;
-  const taskCount = dateTasks.length;
+  const taskCount = projectTasks.length;
 
   return (
     <Frame borderColor={borderColor} height={height}>
@@ -509,9 +468,8 @@ const Tasks = ({height}) => {
           isEditingMetadata={isEditingMetadata}
           isSelectingCategory={isSelectingCategory}
           isAddingManualTime={isAddingManualTime}
-          isDeleting={isDeleting}
           isSearching={isSearching}
-          dateTasks={dateTasks}
+          projectTasks={projectTasks}
           selectedProject={selectedProject}
           selectedTaskId={selectedTaskId}
           selectedTaskTitle={selectedTask?.title}
@@ -522,8 +480,6 @@ const Tasks = ({height}) => {
             isExploration: selectedTask?.isExploration,
             scope: selectedTask?.scope,
           }}
-          dateDisplay={dateDisplay}
-          isT1={isT1}
           handleCreateSubmit={handleCreateSubmit}
           handleCreateCancel={handleCreateCancel}
           handleEditSubmit={handleEditSubmit}
@@ -536,8 +492,6 @@ const Tasks = ({height}) => {
           handleCategoryCancel={handleCategoryCancel}
           handleManualTimeSubmit={handleManualTimeSubmit}
           handleManualTimeCancel={handleManualTimeCancel}
-          handleDeleteConfirm={handleDeleteConfirm}
-          handleDeleteCancel={handleDeleteCancel}
           handleSearchSubmit={handleSearchSubmit}
           handleSearchCancel={handleSearchCancel}
           selectedProjectId={selectedProjectId}
@@ -546,7 +500,7 @@ const Tasks = ({height}) => {
       <Frame.Footer>
         {isTasksFocused && mode === 'normal' && !isInEditMode && (
           <HelpBottom>
-            j/k:nav c:new /:search i:edit E:est M:meta C:cat a:add d:del s:start
+            j/k:nav c:new /:search i:edit E:est M:meta C:cat a:add s:start
             P:pomodoro p/n:day
           </HelpBottom>
         )}

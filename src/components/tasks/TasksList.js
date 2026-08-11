@@ -1,29 +1,22 @@
 import React from 'react';
-import {Box} from 'ink';
-import NameAndDetails from './NameAndDetails.js';
 import ScrollBox from '../ScrollBox.js';
-import {formatTime} from '../../utils.js';
+import NameAndDetails from './NameAndDetails.js';
 import {getVisibleTaskCount} from './taskListLayout.js';
 
-const TasksList = ({panelHeight, dateTasks, selectedTaskId, isT1}) => {
-  const selectedIndex = dateTasks.findIndex(t => t.id === selectedTaskId);
+const TasksList = ({panelHeight, projectTasks, selectedTaskId}) => {
+  const selectedIndex = projectTasks.findIndex(t => t.id === selectedTaskId);
 
   return (
     <ScrollBox
       height={getVisibleTaskCount(panelHeight)}
       selectedIndex={selectedIndex}
-      itemCount={dateTasks.length}
+      itemCount={projectTasks.length}
     >
-      {dateTasks.map(uniqueTask => (
+      {projectTasks.map(task => (
         <NameAndDetails
-          key={uniqueTask.id}
-          uniqueTask={uniqueTask}
-          isSelected={uniqueTask.id === selectedTaskId}
-          timeDisplay={formatTime(
-            isT1
-              ? Math.floor(uniqueTask.totalSec + uniqueTask.totalSec * 0.33)
-              : uniqueTask.totalSec,
-          )}
+          key={task.id}
+          task={task}
+          isSelected={task.id === selectedTaskId}
         />
       ))}
     </ScrollBox>

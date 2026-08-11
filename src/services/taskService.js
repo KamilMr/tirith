@@ -229,6 +229,38 @@ const taskService = {
 
   selectByProjectId: projectId => taskModel.selectByProjectId(projectId),
 
+  selectProjectTaskList: async projectId => {
+    const tasks = await taskModel.selectByProjectIdWithActivity(projectId);
+
+    return tasks
+      .map(task => ({
+        id: task.id,
+        title: task.title,
+        projectId: task.project_id,
+        estimatedMinutes: task.estimated_minutes,
+        epic: task.epic,
+        category: task.category,
+        isExploration: Boolean(task.is_exploration),
+        scope: task.scope,
+        latestActivity: task.latest_activity || null,
+        isActive: Number(task.is_active) === 1,
+      }))
+      .sort((left, right) => {
+        if (left.isActive !== right.isActive) return left.isActive ? -1 : 1;
+
+        const leftActivity = left.latestActivity
+          ? new Date(left.latestActivity).getTime()
+          : 0;
+        const rightActivity = right.latestActivity
+          ? new Date(right.latestActivity).getTime()
+          : 0;
+        if (leftActivity !== rightActivity)
+          return rightActivity - leftActivity;
+
+        return left.title.localeCompare(right.title);
+      });
+  },
+
   getTaskSuggestions: async projectId => {
     const tasks = await taskModel.getDistinctTaskNamesByProject(projectId);
     return tasks.map(task => task.title);
