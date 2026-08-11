@@ -30,7 +30,7 @@ Replace Section 3's date-filtered task rows with a persistent task list for the 
 ### Phase 2: Hierarchical View 0 ranges
 
 - Add tested calendar-period calculations for daily, weekly, monthly, and yearly ranges.
-- Add range and period navigation displays.
+- Keep range navigation, period navigation, and existing content visible together.
 - Connect View 0 keys so `h/l` selects horizontal ranges and periods, `Enter` descends, `Esc` ascends, and `t` returns to current.
 - Reuse existing task, project, client, and dashboard detail renderers with the selected calendar period.
 

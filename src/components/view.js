@@ -347,10 +347,6 @@ const View = ({height}) => {
 
     return (
       <Box flexDirection="column">
-        <PeriodNavigator
-          rangeLabel={selectedRange.label}
-          periodLabel={periodLabel}
-        />
         <Box flexDirection="row" marginBottom={1}>
           <Box width={30}>
             <KeyValue
@@ -564,10 +560,6 @@ const View = ({height}) => {
 
     return (
       <Box flexDirection="column">
-        <PeriodNavigator
-          rangeLabel={selectedRange.label}
-          periodLabel={periodLabel}
-        />
         <Box flexDirection="row">
           <Box width={30}>
             <KeyValue
@@ -595,10 +587,6 @@ const View = ({height}) => {
 
     return (
       <Box flexDirection="column">
-        <PeriodNavigator
-          rangeLabel={selectedRange.label}
-          periodLabel={periodLabel}
-        />
         <Box flexDirection="row">
           <Box width={30}>
             <KeyValue
@@ -637,10 +625,6 @@ const View = ({height}) => {
 
     return (
       <Box flexDirection="column">
-        <PeriodNavigator
-          rangeLabel={selectedRange.label}
-          periodLabel={periodLabel}
-        />
         <Box marginBottom={1}>
           <KeyValue
             label={`${selectedRange.label} Summary:`}
@@ -673,24 +657,6 @@ const View = ({height}) => {
   };
 
   const renderContent = () => {
-    if (isViewFocused && viewLevel === 'range')
-      return (
-        <RangeSelector
-          options={VIEW_RANGE_OPTIONS}
-          selectedIndex={selectedRangeIndex}
-          controls="h/l to choose, Enter to confirm"
-        />
-      );
-
-    if (isViewFocused && viewLevel === 'period')
-      return (
-        <PeriodNavigator
-          rangeLabel={selectedRange.label}
-          periodLabel={periodLabel}
-          controls="h/l to navigate, t for current, Enter to open, Esc to go back"
-        />
-      );
-
     if (isClientFocused) {
       if (selectedClientId) return renderClientDetails();
       if (clients.length > 0) {
@@ -791,7 +757,23 @@ const View = ({height}) => {
           )}
         </Text>
       </Frame.Header>
-      <Frame.Body>{renderContent()}</Frame.Body>
+      <Frame.Body>
+        <Box flexDirection="column">
+          <RangeSelector
+            options={VIEW_RANGE_OPTIONS}
+            selectedIndex={selectedRangeIndex}
+            controls="h/l to choose, Enter to confirm"
+            isFocused={isViewFocused && viewLevel === 'range'}
+          />
+          <PeriodNavigator
+            rangeLabel={selectedRange.label}
+            periodLabel={periodLabel}
+            controls="h/l to navigate, t for current, Enter to open, Esc to go back"
+            isFocused={isViewFocused && viewLevel === 'period'}
+          />
+          {renderContent()}
+        </Box>
+      </Frame.Body>
       <Frame.Footer>
         {isViewFocused && viewLevel === 'range' && (
           <HelpBottom>h/l:range Enter:choose t:current</HelpBottom>

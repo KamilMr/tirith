@@ -5,13 +5,17 @@ const RangeSelector = ({
   options,
   selectedIndex,
   controls = 'h/l to change',
+  isFocused = false,
 }) => (
   <Box marginBottom={1}>
+    <Text color={isFocused ? 'green' : undefined}>
+      {isFocused ? '› ' : '  '}
+    </Text>
     <Text dimColor>Range: </Text>
     {options.map((option, index) => (
       <Text key={option.label}>
         {index === selectedIndex ? (
-          <Text color="green" bold>
+          <Text color={isFocused ? 'green' : undefined} bold={isFocused}>
             [{option.label}]
           </Text>
         ) : (
