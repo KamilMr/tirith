@@ -31,7 +31,7 @@ Replace Section 3's date-filtered task rows with a persistent task list for the 
 
 - Add tested calendar-period calculations for daily, weekly, monthly, and yearly ranges.
 - Add range and period navigation displays.
-- Connect View 0 keys: `j/k`, `h/l`, `t`, `Enter`, and `Esc` according to navigation depth.
+- Connect View 0 keys so `h/l` selects horizontal ranges and periods, `Enter` descends, `Esc` ascends, and `t` returns to current.
 - Reuse existing task, project, client, and dashboard detail renderers with the selected calendar period.
 
 ### Checkpoint: Complete

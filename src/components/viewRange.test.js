@@ -3,6 +3,7 @@ import {
   getViewDateRange,
   moveViewPeriod,
   moveViewLevel,
+  moveViewRangeIndex,
   formatViewPeriod,
 } from './viewRange.js';
 
@@ -37,6 +38,14 @@ describe('moveViewPeriod', () => {
         String(moved.getDate()).padStart(2, '0'),
       ].join('-'),
     ).toBe(expectedDate);
+  });
+});
+
+describe('moveViewRangeIndex', () => {
+  it('moves horizontally through ranges and wraps at both ends', () => {
+    expect(moveViewRangeIndex(0, 1)).toBe(1);
+    expect(moveViewRangeIndex(3, 1)).toBe(0);
+    expect(moveViewRangeIndex(0, -1)).toBe(3);
   });
 });
 

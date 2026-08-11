@@ -46,6 +46,7 @@ import {
   getViewDateRange,
   moveViewLevel,
   moveViewPeriod,
+  moveViewRangeIndex,
 } from './viewRange.js';
 
 const View = ({height}) => {
@@ -241,14 +242,10 @@ const View = ({height}) => {
     openEditor(timeEntries, taskDetails?.title || 'All Entries');
   };
 
-  const selectNextRange = () =>
-    setSelectedRangeIndex(prev =>
-      prev < VIEW_RANGE_OPTIONS.length - 1 ? prev + 1 : 0,
-    );
-  const selectPreviousRange = () =>
-    setSelectedRangeIndex(prev =>
-      prev > 0 ? prev - 1 : VIEW_RANGE_OPTIONS.length - 1,
-    );
+  const selectRange = direction => {
+    setSelectedRangeIndex(prev => moveViewRangeIndex(prev, direction));
+    setRangeAnchor(new Date());
+  };
   const selectPreviousPeriod = () =>
     setRangeAnchor(prev => moveViewPeriod(selectedRange.type, prev, -1));
   const selectNextPeriod = () =>
@@ -270,8 +267,8 @@ const View = ({height}) => {
   let keyMappings;
   if (viewLevel === 'range')
     keyMappings = [
-      {key: 'j', action: selectNextRange},
-      {key: 'k', action: selectPreviousRange},
+      {key: 'h', action: () => selectRange(-1)},
+      {key: 'l', action: () => selectRange(1)},
       {key: 't', action: selectCurrentPeriod},
       {key: 'return', action: openNextViewLevel},
     ];
@@ -681,7 +678,7 @@ const View = ({height}) => {
         <RangeSelector
           options={VIEW_RANGE_OPTIONS}
           selectedIndex={selectedRangeIndex}
-          controls="j/k to choose, Enter to confirm"
+          controls="h/l to choose, Enter to confirm"
         />
       );
 
@@ -797,7 +794,7 @@ const View = ({height}) => {
       <Frame.Body>{renderContent()}</Frame.Body>
       <Frame.Footer>
         {isViewFocused && viewLevel === 'range' && (
-          <HelpBottom>j/k:range Enter:choose t:current</HelpBottom>
+          <HelpBottom>h/l:range Enter:choose t:current</HelpBottom>
         )}
         {isViewFocused && viewLevel === 'period' && (
           <HelpBottom>h/l:period t:current Enter:open Esc:back</HelpBottom>

@@ -21,6 +21,10 @@ export const VIEW_RANGE_OPTIONS = [
 
 export const VIEW_LEVELS = ['range', 'period', 'detail'];
 
+export const moveViewRangeIndex = (selectedIndex, direction) =>
+  (selectedIndex + direction + VIEW_RANGE_OPTIONS.length) %
+  VIEW_RANGE_OPTIONS.length;
+
 const periodBounds = (type, anchorDate) => {
   switch (type) {
     case 'daily':
