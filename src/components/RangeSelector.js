@@ -1,7 +1,11 @@
 import React from 'react';
 import {Text, Box} from 'ink';
 
-const RangeSelector = ({options, selectedIndex}) => (
+const RangeSelector = ({
+  options,
+  selectedIndex,
+  controls = 'h/l to change',
+}) => (
   <Box marginBottom={1}>
     <Text dimColor>Range: </Text>
     {options.map((option, index) => (
@@ -15,7 +19,7 @@ const RangeSelector = ({options, selectedIndex}) => (
         )}
       </Text>
     ))}
-    <Text dimColor> (h/l to change)</Text>
+    <Text dimColor> ({controls})</Text>
   </Box>
 );
 

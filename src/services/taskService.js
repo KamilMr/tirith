@@ -78,6 +78,43 @@ const saveManualTimeEntry = async (taskId, parsed) => {
   return {entryId, taskId, ...parsed};
 };
 
+const groupTaskEntries = entries =>
+  Object.values(
+    entries.reduce((tasks, entry) => {
+      const key = entry.task_id;
+
+      if (!tasks[key]) {
+        tasks[key] = {
+          id: entry.task_id,
+          title: entry.title,
+          projectId: entry.project_id,
+          estimatedMinutes: entry.estimated_minutes,
+          epic: entry.epic,
+          category: entry.category,
+          isExploration: entry.is_exploration,
+          scope: entry.scope,
+          totalSec: 0,
+          segments: [],
+        };
+      }
+
+      const durationTime = entry.end
+        ? calculateDuration(entry.start, entry.end)
+        : 0;
+      tasks[key].totalSec += durationTime;
+      if (!entry.end) tasks[key].isActive = true;
+
+      tasks[key].segments.push({
+        id: entry.id,
+        startTime: entry.start,
+        endTime: entry.end,
+        durationTime,
+      });
+
+      return tasks;
+    }, {}),
+  );
+
 const taskService = {
   create: async ({title, projectId, estimatedMinutes = null}) => {
     if (!title || title.trim().length === 0)
@@ -254,8 +291,7 @@ const taskService = {
         const rightActivity = right.latestActivity
           ? new Date(right.latestActivity).getTime()
           : 0;
-        if (leftActivity !== rightActivity)
-          return rightActivity - leftActivity;
+        if (leftActivity !== rightActivity) return rightActivity - leftActivity;
 
         return left.title.localeCompare(right.title);
       });
@@ -365,6 +401,14 @@ const taskService = {
     return {hours, minutes, totalSeconds};
   },
 
+  getTasksByDateRange: async (startDate, endDate) => {
+    const entries = await timeEntryModel.selectByDateRangeWithTask({
+      startDate,
+      endDate,
+    });
+    return groupTaskEntries(entries);
+  },
+
   getAllTasksFromToday: async (date = new Date(), pId = null) => {
     const dateStr = typeof date === 'string' ? date : retriveYYYYMMDD(date);
     const entries = await timeEntryModel.selectByDateWithTask(dateStr);
@@ -392,43 +436,7 @@ const taskService = {
       }
     }
 
-    // Group by task_id
-    const groupedTasks = filteredEntries.reduce((acc, entry) => {
-      const key = entry.task_id;
-
-      if (!acc[key]) {
-        acc[key] = {
-          id: entry.task_id,
-          title: entry.title,
-          projectId: entry.project_id,
-          estimatedMinutes: entry.estimated_minutes,
-          epic: entry.epic,
-          category: entry.category,
-          isExploration: entry.is_exploration,
-          scope: entry.scope,
-          totalSec: 0,
-          segments: [],
-        };
-      }
-
-      const durationTime = entry.end
-        ? calculateDuration(entry.start, entry.end)
-        : 0;
-      acc[key].totalSec += durationTime;
-
-      if (!entry.end) acc[key].isActive = true;
-
-      acc[key].segments.push({
-        id: entry.id,
-        startTime: entry.start,
-        endTime: entry.end,
-        durationTime,
-      });
-
-      return acc;
-    }, {});
-
-    return Object.values(groupedTasks);
+    return groupTaskEntries(filteredEntries);
   },
 };
 

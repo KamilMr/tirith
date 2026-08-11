@@ -26,6 +26,7 @@ import {
 } from '../services/timeEntryDraft.js';
 import KeyValue from './KeyValue.js';
 import RangeSelector from './RangeSelector.js';
+import PeriodNavigator from './PeriodNavigator.js';
 import Earnings from './Earnings.js';
 import WorkTargets from './WorkTargets.js';
 import pricingService from '../services/pricingService.js';
@@ -37,21 +38,15 @@ import {
   calculateDuration,
   formatRelativeTime,
   formatHour,
-  getDateRange,
 } from '../utils.js';
 import {format} from 'date-fns';
-
-const RANGE_OPTIONS = [
-  {label: 'Dashboard', type: 'dashboard'},
-  {label: 'Today', type: 'today'},
-  {label: 'Week', type: 'week'},
-  {label: 'This Month', type: 'thisMonth'},
-  {label: 'Prev Month', type: 'prevMonth'},
-  {label: 'All', type: 'all'},
-];
-const DEFAULT_RANGE_INDEX = RANGE_OPTIONS.findIndex(
-  option => option.type === 'thisMonth',
-);
+import {
+  VIEW_RANGE_OPTIONS,
+  formatViewPeriod,
+  getViewDateRange,
+  moveViewLevel,
+  moveViewPeriod,
+} from './viewRange.js';
 
 const View = ({height}) => {
   const {
@@ -90,19 +85,13 @@ const View = ({height}) => {
     else if (isProjectsFocused) setLastSection('project');
     else if (isTasksFocused) setLastSection('task');
   }, [isClientFocused, isProjectsFocused, isTasksFocused]);
-  const [selectedRangeIndex, setSelectedRangeIndex] = useState(
-    DEFAULT_RANGE_INDEX,
-  );
-  const [projectRangeIndex, setProjectRangeIndex] = useState(
-    DEFAULT_RANGE_INDEX,
-  );
-  const [clientRangeIndex, setClientRangeIndex] = useState(
-    DEFAULT_RANGE_INDEX,
-  );
+  const [selectedRangeIndex, setSelectedRangeIndex] = useState(0);
+  const [rangeAnchor, setRangeAnchor] = useState(() => new Date());
+  const [viewLevel, setViewLevel] = useState('range');
 
-  const currentRange = getDateRange(RANGE_OPTIONS[selectedRangeIndex].type);
-  const projectRange = getDateRange(RANGE_OPTIONS[projectRangeIndex].type);
-  const clientRange = getDateRange(RANGE_OPTIONS[clientRangeIndex].type);
+  const selectedRange = VIEW_RANGE_OPTIONS[selectedRangeIndex];
+  const currentRange = getViewDateRange(selectedRange.type, rangeAnchor);
+  const periodLabel = formatViewPeriod(selectedRange.type, rangeAnchor);
   const taskProject = allProjects.find(p => p.id === taskDetails?.project_id);
   const taskClient = clients.find(c => c.id === taskProject?.client_id);
 
@@ -127,16 +116,16 @@ const View = ({height}) => {
     null,
     selectedProjectId,
     null,
-    projectRange.startDate,
-    projectRange.endDate,
+    currentRange.startDate,
+    currentRange.endDate,
     reload,
   );
   const {pricing: clientPricing, loading: clientPricingLoading} = usePricing(
     null,
     null,
     selectedClientId,
-    clientRange.startDate,
-    clientRange.endDate,
+    currentRange.startDate,
+    currentRange.endDate,
     reload,
   );
 
@@ -159,8 +148,10 @@ const View = ({height}) => {
   }, [isTasksFocused, reload]);
 
   useEffect(() => {
-    taskService.getAllTasksFromToday(new Date(), null).then(setDashboardTasks);
-  }, [reload]);
+    taskService
+      .getTasksByDateRange(currentRange.startDate, currentRange.endDate)
+      .then(setDashboardTasks);
+  }, [reload, currentRange.startDate, currentRange.endDate]);
 
   useEffect(() => {
     if (selectedTaskId && (isTasksFocused || isViewFocused)) {
@@ -250,27 +241,21 @@ const View = ({height}) => {
     openEditor(timeEntries, taskDetails?.title || 'All Entries');
   };
 
-  const handleRangeNext = () => {
+  const selectNextRange = () =>
     setSelectedRangeIndex(prev =>
-      prev < RANGE_OPTIONS.length - 1 ? prev + 1 : 0,
+      prev < VIEW_RANGE_OPTIONS.length - 1 ? prev + 1 : 0,
     );
-  };
-
-  const handleRangePrev = () => {
+  const selectPreviousRange = () =>
     setSelectedRangeIndex(prev =>
-      prev > 0 ? prev - 1 : RANGE_OPTIONS.length - 1,
+      prev > 0 ? prev - 1 : VIEW_RANGE_OPTIONS.length - 1,
     );
-  };
-
-  const makeRangeHandlers = setter => ({
-    next: () =>
-      setter(prev => (prev < RANGE_OPTIONS.length - 1 ? prev + 1 : 0)),
-    prev: () =>
-      setter(prev => (prev > 0 ? prev - 1 : RANGE_OPTIONS.length - 1)),
-  });
-
-  const projectRangeHandlers = makeRangeHandlers(setProjectRangeIndex);
-  const clientRangeHandlers = makeRangeHandlers(setClientRangeIndex);
+  const selectPreviousPeriod = () =>
+    setRangeAnchor(prev => moveViewPeriod(selectedRange.type, prev, -1));
+  const selectNextPeriod = () =>
+    setRangeAnchor(prev => moveViewPeriod(selectedRange.type, prev, 1));
+  const selectCurrentPeriod = () => setRangeAnchor(new Date());
+  const openNextViewLevel = () => setViewLevel(prev => moveViewLevel(prev, 1));
+  const closeViewLevel = () => setViewLevel(prev => moveViewLevel(prev, -1));
 
   const activeSection = isViewFocused
     ? lastSection
@@ -283,7 +268,27 @@ const View = ({height}) => {
   const isAdjustingEntry = !!draftEntry;
 
   let keyMappings;
-  if (activeSection === 'task' && selectedTaskId && taskDetails && draftEntry)
+  if (viewLevel === 'range')
+    keyMappings = [
+      {key: 'j', action: selectNextRange},
+      {key: 'k', action: selectPreviousRange},
+      {key: 't', action: selectCurrentPeriod},
+      {key: 'return', action: openNextViewLevel},
+    ];
+  else if (viewLevel === 'period')
+    keyMappings = [
+      {key: 'h', action: selectPreviousPeriod},
+      {key: 'l', action: selectNextPeriod},
+      {key: 't', action: selectCurrentPeriod},
+      {key: 'return', action: openNextViewLevel},
+      {key: 'escape', action: closeViewLevel},
+    ];
+  else if (
+    activeSection === 'task' &&
+    selectedTaskId &&
+    taskDetails &&
+    draftEntry
+  )
     keyMappings = [
       {key: 'j', action: () => moveDraftEntry(5)},
       {key: 'k', action: () => moveDraftEntry(-5)},
@@ -304,23 +309,13 @@ const View = ({height}) => {
       {key: 'd', action: deleteSelectedEntry},
       {key: 'e', action: handleEditorOpen},
       {key: 'm', action: startEntryAdjustment},
-      {key: 'h', action: handleRangePrev},
-      {key: 'l', action: handleRangeNext},
-    ];
-  else if (activeSection === 'project' && selectedProjectId)
-    keyMappings = [
-      {key: 'h', action: projectRangeHandlers.prev},
-      {key: 'l', action: projectRangeHandlers.next},
-    ];
-  else if (activeSection === 'client' && selectedClientId)
-    keyMappings = [
-      {key: 'h', action: clientRangeHandlers.prev},
-      {key: 'l', action: clientRangeHandlers.next},
+      {key: 't', action: selectCurrentPeriod},
+      {key: 'escape', action: closeViewLevel},
     ];
   else
     keyMappings = [
-      {key: 'h', action: handleRangePrev},
-      {key: 'l', action: handleRangeNext},
+      {key: 't', action: selectCurrentPeriod},
+      {key: 'escape', action: closeViewLevel},
     ];
 
   useComponentKeys(VIEW, keyMappings, isViewFocused);
@@ -355,9 +350,9 @@ const View = ({height}) => {
 
     return (
       <Box flexDirection="column">
-        <RangeSelector
-          options={RANGE_OPTIONS}
-          selectedIndex={selectedRangeIndex}
+        <PeriodNavigator
+          rangeLabel={selectedRange.label}
+          periodLabel={periodLabel}
         />
         <Box flexDirection="row" marginBottom={1}>
           <Box width={30}>
@@ -572,9 +567,9 @@ const View = ({height}) => {
 
     return (
       <Box flexDirection="column">
-        <RangeSelector
-          options={RANGE_OPTIONS}
-          selectedIndex={projectRangeIndex}
+        <PeriodNavigator
+          rangeLabel={selectedRange.label}
+          periodLabel={periodLabel}
         />
         <Box flexDirection="row">
           <Box width={30}>
@@ -603,9 +598,9 @@ const View = ({height}) => {
 
     return (
       <Box flexDirection="column">
-        <RangeSelector
-          options={RANGE_OPTIONS}
-          selectedIndex={clientRangeIndex}
+        <PeriodNavigator
+          rangeLabel={selectedRange.label}
+          periodLabel={periodLabel}
         />
         <Box flexDirection="row">
           <Box width={30}>
@@ -645,9 +640,13 @@ const View = ({height}) => {
 
     return (
       <Box flexDirection="column">
+        <PeriodNavigator
+          rangeLabel={selectedRange.label}
+          periodLabel={periodLabel}
+        />
         <Box marginBottom={1}>
           <KeyValue
-            label="Today's Dashboard:"
+            label={`${selectedRange.label} Summary:`}
             items={[
               {
                 key: 'Active',
@@ -677,26 +676,23 @@ const View = ({height}) => {
   };
 
   const renderContent = () => {
-    let activeRangeIndex;
-    if (activeSection === 'task' && selectedTaskId && taskDetails)
-      activeRangeIndex = selectedRangeIndex;
-    else if (activeSection === 'project' && selectedProjectId)
-      activeRangeIndex = projectRangeIndex;
-    else if (activeSection === 'client' && selectedClientId)
-      activeRangeIndex = clientRangeIndex;
-    else activeRangeIndex = selectedRangeIndex;
-
-    if (RANGE_OPTIONS[activeRangeIndex].type === 'dashboard') {
+    if (isViewFocused && viewLevel === 'range')
       return (
-        <Box flexDirection="column">
-          <RangeSelector
-            options={RANGE_OPTIONS}
-            selectedIndex={activeRangeIndex}
-          />
-          {renderDashboard()}
-        </Box>
+        <RangeSelector
+          options={VIEW_RANGE_OPTIONS}
+          selectedIndex={selectedRangeIndex}
+          controls="j/k to choose, Enter to confirm"
+        />
       );
-    }
+
+    if (isViewFocused && viewLevel === 'period')
+      return (
+        <PeriodNavigator
+          rangeLabel={selectedRange.label}
+          periodLabel={periodLabel}
+          controls="h/l to navigate, t for current, Enter to open, Esc to go back"
+        />
+      );
 
     if (isClientFocused) {
       if (selectedClientId) return renderClientDetails();
@@ -800,18 +796,35 @@ const View = ({height}) => {
       </Frame.Header>
       <Frame.Body>{renderContent()}</Frame.Body>
       <Frame.Footer>
-        {activeSection === 'task' && selectedTaskId && hasTimeEntries &&
-          (isAdjustingEntry ? (
-            <HelpBottom>j/k:move5 J/K:move30 h/l:duration5 H/L:duration30 r:round Enter:save Esc:cancel</HelpBottom>
+        {isViewFocused && viewLevel === 'range' && (
+          <HelpBottom>j/k:range Enter:choose t:current</HelpBottom>
+        )}
+        {isViewFocused && viewLevel === 'period' && (
+          <HelpBottom>h/l:period t:current Enter:open Esc:back</HelpBottom>
+        )}
+        {isViewFocused && viewLevel === 'detail' && isAdjustingEntry && (
+          <HelpBottom>
+            j/k:move5 J/K:move30 h/l:duration5 H/L:duration30 r:round Enter:save
+            Esc:cancel
+          </HelpBottom>
+        )}
+        {isViewFocused &&
+          viewLevel === 'detail' &&
+          !isAdjustingEntry &&
+          activeSection === 'task' &&
+          selectedTaskId &&
+          (hasTimeEntries ? (
+            <HelpBottom>
+              j/k:entries m:move e:edit d:delete t:current Esc:back
+            </HelpBottom>
           ) : (
-            <HelpBottom>h/l:range j/k:entries m:move e:edit d:delete</HelpBottom>
+            <HelpBottom>t:current Esc:back</HelpBottom>
           ))}
-        {activeSection === 'project' && selectedProjectId && (
-          <HelpBottom>h/l:range</HelpBottom>
-        )}
-        {activeSection === 'client' && selectedClientId && (
-          <HelpBottom>h/l:range</HelpBottom>
-        )}
+        {isViewFocused &&
+          viewLevel === 'detail' &&
+          !(activeSection === 'task' && selectedTaskId) && (
+            <HelpBottom>t:current Esc:back</HelpBottom>
+          )}
       </Frame.Footer>
     </Frame>
   );
