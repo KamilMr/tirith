@@ -6,9 +6,9 @@ describe('getVisibleTaskCount', () => {
     expect(getVisibleTaskCount(6)).toBe(1);
   });
 
-  it('uses additional panel height for complete two-line task items', () => {
-    expect(getVisibleTaskCount(11)).toBe(3);
-    expect(getVisibleTaskCount(23)).toBe(9);
+  it('uses each available content row for a one-line task item', () => {
+    expect(getVisibleTaskCount(11)).toBe(6);
+    expect(getVisibleTaskCount(23)).toBe(18);
   });
 
   it.each([0, 1, 5])(

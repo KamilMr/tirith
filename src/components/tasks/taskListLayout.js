@@ -1,5 +1,5 @@
 const TASK_PANEL_CHROME_HEIGHT = 5;
-const TASK_ITEM_HEIGHT = 2;
+const TASK_ITEM_HEIGHT = 1;
 
 export const getVisibleTaskCount = panelHeight =>
   Math.max(
