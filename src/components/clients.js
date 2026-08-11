@@ -14,6 +14,7 @@ import EditForm from './EditForm.js';
 import clientService from '../services/clientService.js';
 import pricingService from '../services/pricingService.js';
 import ProgressBar from './ProgressBar.js';
+import {formatProgressBarText} from './progressBarLayout.js';
 
 const Client = ({height}) => {
   const {isClientFocused, getBorderTitle, mode} = useNavigation();
@@ -265,6 +266,10 @@ const Client = ({height}) => {
                       hoursPerWorkDay={monthlyData.hoursPerWorkDay}
                       hoursPerWorkDayRaw={monthlyData.hoursPerWorkDayRaw}
                       overflowHours={monthlyData.overflowHours}
+                      text={formatProgressBarText(
+                        monthlyData.workedHours,
+                        monthlyData.targetHours,
+                      )}
                     />
                   </Text>
                 </Box>

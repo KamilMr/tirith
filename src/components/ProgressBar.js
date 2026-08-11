@@ -1,7 +1,6 @@
 import React from 'react';
 import {Text} from 'ink';
-
-const BAR_WIDTH = 20;
+import {BAR_WIDTH, createLabeledBarSegments} from './progressBarLayout.js';
 
 const getPaceColor = (hoursPerDay, remainingHours) => {
   if (remainingHours <= 0) return 'green';
@@ -17,6 +16,7 @@ const ProgressBar = ({
   hoursPerWorkDay,
   hoursPerWorkDayRaw,
   overflowHours,
+  text,
 }) => {
   const progress = targetHours > 0 ? Math.min(1, workedHours / targetHours) : 0;
   const filled = Math.round(progress * BAR_WIDTH);
@@ -25,6 +25,28 @@ const ProgressBar = ({
   const color = getPaceColor(hoursPerWorkDayRaw, remainingHours);
   const overflowPart =
     overflowHours && overflowHours !== '00:00' ? `(+${overflowHours}h)` : '';
+
+  if (text !== undefined) {
+    const segments = createLabeledBarSegments({
+      text,
+      filled,
+      filledColor: color,
+    });
+
+    return (
+      <Text>
+        {segments.map((segment, index) => (
+          <Text
+            key={index}
+            color={segment.color}
+            backgroundColor={segment.backgroundColor}
+          >
+            {segment.text}
+          </Text>
+        ))}
+      </Text>
+    );
+  }
 
   return (
     <Text>
