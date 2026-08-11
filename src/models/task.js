@@ -35,15 +35,17 @@ const task = {
 
   selectByProjectIdWithActivity: projectId => {
     const activity = db('time_entry')
-      .select('task_id')
-      .max('start as latest_activity')
+      .join('task as activity_task', 'time_entry.task_id', 'activity_task.id')
+      .where('activity_task.project_id', projectId)
+      .select('time_entry.task_id')
+      .max('time_entry.start as latest_activity')
       .select(
-        db.raw(
-          'MAX(CASE WHEN ?? IS NULL THEN 1 ELSE 0 END) as ??',
-          ['end', 'is_active'],
-        ),
+        db.raw('MAX(CASE WHEN ?? IS NULL THEN 1 ELSE 0 END) as ??', [
+          'time_entry.end',
+          'is_active',
+        ]),
       )
-      .groupBy('task_id')
+      .groupBy('time_entry.task_id')
       .as('activity');
 
     return db(TABLE)
