@@ -17,6 +17,7 @@ import usePricing from '../hooks/usePricing.js';
 import useEditorBuffer from '../hooks/useEditorBuffer.js';
 import useLiveClientMetrics from '../hooks/useLiveClientMetrics.js';
 import useLiveNow from '../hooks/useLiveNow.js';
+import usePeriodSummary from '../hooks/usePeriodSummary.js';
 import {findTimeEntryOverlaps} from '../services/timeEntryOverlap.js';
 import {formatTimeEntryOverlapSummary} from '../services/timeEntryOverlapSummary.js';
 import {
@@ -29,6 +30,7 @@ import RangeSelector from './RangeSelector.js';
 import PeriodNavigator from './PeriodNavigator.js';
 import Earnings from './Earnings.js';
 import WorkTargets from './WorkTargets.js';
+import PeriodSummary from './PeriodSummary.js';
 import SelectableList from './SelectableList.js';
 import {
   formatTime,
@@ -74,7 +76,6 @@ const View = ({height}) => {
   const [timeEntries, setTimeEntries] = useState([]);
   const [draftEntry, setDraftEntry] = useState(null);
   const [lastSection, setLastSection] = useState(null);
-  const [dashboardTasks, setDashboardTasks] = useState([]);
   const [selectedRangeIndex, setSelectedRangeIndex] = useState(0);
   const [rangeAnchor, setRangeAnchor] = useState(() => new Date());
   const [viewLevel, setViewLevel] = useState('range');
@@ -97,6 +98,13 @@ const View = ({height}) => {
     clientMetrics?.endDate === currentRange.endDate
       ? clientMetrics
       : null;
+  const {summary: periodSummary, loading: periodSummaryLoading} =
+    usePeriodSummary({
+      rangeType: selectedRange.type,
+      startDate: currentRange.startDate,
+      endDate: currentRange.endDate,
+      reload,
+    });
 
   useEffect(() => {
     if (isClientFocused) setLastSection('client');
@@ -152,12 +160,6 @@ const View = ({height}) => {
       taskService.selectAll().then(setAllTasks);
     }
   }, [isTasksFocused, reload]);
-
-  useEffect(() => {
-    taskService
-      .getTasksByDateRange(currentRange.startDate, currentRange.endDate)
-      .then(setDashboardTasks);
-  }, [reload, currentRange.startDate, currentRange.endDate]);
 
   useEffect(() => {
     if (selectedTaskId && (isTasksFocused || isViewFocused)) {
@@ -646,53 +648,13 @@ const View = ({height}) => {
     );
   };
 
-  const renderDashboard = () => {
-    const activeTask = dashboardTasks.find(t => t.isActive);
-    const totalSec = dashboardTasks.reduce((sum, t) => sum + t.totalSec, 0);
-
-    const clientBreakdown = dashboardTasks.reduce((acc, task) => {
-      const project = allProjects.find(p => p.id === task.projectId);
-      const client = clients.find(c => c.id === project?.client_id);
-      const clientName = client?.name || 'Unknown';
-
-      if (!acc[clientName]) acc[clientName] = {totalSec: 0, taskCount: 0};
-      acc[clientName].totalSec += task.totalSec;
-      acc[clientName].taskCount += 1;
-      return acc;
-    }, {});
-
-    return (
-      <Box flexDirection="column">
-        <Box marginBottom={1}>
-          <KeyValue
-            label={`${selectedRange.label} Summary:`}
-            items={[
-              {
-                key: 'Active',
-                value: activeTask ? (
-                  <Text color="green">{activeTask.title}</Text>
-                ) : (
-                  <Text dimColor>None</Text>
-                ),
-              },
-              {key: 'Total', value: formatTime(totalSec) || '0h 0m'},
-              {key: 'Tasks', value: dashboardTasks.length},
-            ]}
-          />
-        </Box>
-
-        {Object.keys(clientBreakdown).length > 0 && (
-          <KeyValue
-            label="Per Client:"
-            items={Object.entries(clientBreakdown).map(([name, data]) => ({
-              key: name,
-              value: `${formatTime(data.totalSec) || '0m'} (${data.taskCount} task${data.taskCount !== 1 ? 's' : ''})`,
-            }))}
-          />
-        )}
-      </Box>
-    );
-  };
+  const renderDashboard = () => (
+    <PeriodSummary
+      summary={periodSummary}
+      loading={periodSummaryLoading}
+      rangeLabel={selectedRange.label}
+    />
+  );
 
   const renderContent = () => {
     if (isClientFocused) {
