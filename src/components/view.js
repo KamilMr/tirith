@@ -106,10 +106,8 @@ const View = ({height}) => {
 
   const taskProject = allProjects.find(p => p.id === taskDetails?.project_id);
   const taskClient = clients.find(c => c.id === taskProject?.client_id);
-  const hasActiveSelectedTask = timeEntries.some(
-    entry => entry.task_id === selectedTaskId && !entry.end,
-  );
-  const taskNow = useLiveNow(hasActiveSelectedTask);
+  const hasActiveTimeEntry = timeEntries.some(entry => !entry.end);
+  const taskNow = useLiveNow(hasActiveTimeEntry);
 
   const {
     selectedIndex: selectedEntryIndex,
