@@ -11,7 +11,7 @@ import {
 } from './contexts/NavigationContext.js';
 import {DataProvider} from './contexts/DataContext.js';
 import useTerminalSize from './hooks/useTerminalSize.js';
-import {getSidebarHeights} from './layout/sidebarLayout.js';
+import {getAppHeights, getSidebarHeights} from './layout/sidebarLayout.js';
 import pkg from '../package.json' with {type: 'json'};
 
 const LAYOUT = {
@@ -21,7 +21,7 @@ const LAYOUT = {
 const AppContent = () => {
   const [, rows] = useTerminalSize();
   const {focusedSection, activeSidebarSection} = useNavigation();
-  const mainHeight = rows - 1;
+  const {renderHeight, mainHeight} = getAppHeights(rows);
   const {clientHeight, projectHeight, taskHeight} = getSidebarHeights({
     mainHeight,
     focusedSection,
@@ -29,7 +29,7 @@ const AppContent = () => {
   });
 
   return (
-    <Box height={rows} flexDirection="column">
+    <Box height={renderHeight} flexDirection="column">
       <StatusBar version={pkg.version} />
       <Box height={mainHeight}>
         <Box width={`${LAYOUT.leftColumnWidth}%`} flexDirection="column">

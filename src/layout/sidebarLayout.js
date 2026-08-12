@@ -3,6 +3,15 @@ import {CLIENT, PROJECTS, TASKS} from '../consts.js';
 const COMPACT_PANEL_HEIGHT = 6;
 const SIDEBAR_SECTIONS = [CLIENT, PROJECTS, TASKS];
 
+export const getAppHeights = rows => {
+  const terminalHeight = Math.max(0, Math.floor(rows || 0));
+  // Ink clears the terminal when rendered output occupies every row.
+  const renderHeight = Math.max(0, terminalHeight - 1);
+  const mainHeight = Math.max(0, renderHeight - 1);
+
+  return {renderHeight, mainHeight};
+};
+
 const getExpandedSection = (focusedSection, activeSidebarSection) => {
   if (SIDEBAR_SECTIONS.includes(focusedSection)) return focusedSection;
   if (SIDEBAR_SECTIONS.includes(activeSidebarSection))

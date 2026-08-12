@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {CLIENT, PROJECTS, TASKS, VIEW} from '../consts.js';
-import {getSidebarHeights} from './sidebarLayout.js';
+import {getAppHeights, getSidebarHeights} from './sidebarLayout.js';
 
 const heightFor = (heights, section) =>
   ({
@@ -8,6 +8,12 @@ const heightFor = (heights, section) =>
     [PROJECTS]: heights.projectHeight,
     [TASKS]: heights.taskHeight,
   })[section];
+
+describe('getAppHeights', () => {
+  it('keeps rendered output below the terminal height for incremental updates', () => {
+    expect(getAppHeights(24)).toEqual({renderHeight: 23, mainHeight: 22});
+  });
+});
 
 describe('getSidebarHeights', () => {
   it.each([CLIENT, PROJECTS, TASKS])(
