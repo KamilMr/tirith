@@ -92,6 +92,105 @@ const getTotalWorkingDaysInMonth = () => {
   return days.filter(d => !isWeekend(d)).length;
 };
 
+const countWorkingDays = (startDate, endDate) =>
+  eachDayOfInterval({
+    start: parseISO(startDate),
+    end: parseISO(endDate),
+  }).filter(day => !isWeekend(day)).length;
+
+export const computeRangeWorkTarget = ({
+  rangeType,
+  targetHours,
+  dailyTarget,
+  totalSeconds,
+  startDate,
+  endDate,
+  today = new Date(),
+}) => {
+  const worked = totalSeconds / 3600;
+  const selectedMonthWorkingDays = countWorkingDays(
+    retriveYYYYMMDD(startOfMonth(parseISO(startDate))),
+    retriveYYYYMMDD(endOfMonth(parseISO(startDate))),
+  );
+  const resolvedDailyTarget =
+    dailyTarget ||
+    (selectedMonthWorkingDays > 0 ? targetHours / selectedMonthWorkingDays : 0);
+  const rangeWorkingDays = countWorkingDays(startDate, endDate);
+
+  let target;
+  switch (rangeType) {
+    case 'daily':
+      target = rangeWorkingDays > 0 ? resolvedDailyTarget : 0;
+      break;
+    case 'weekly':
+      target = resolvedDailyTarget * rangeWorkingDays;
+      break;
+    case 'monthly':
+      target = targetHours;
+      break;
+    case 'yearly':
+      target = targetHours * 12;
+      break;
+    default:
+      throw new Error(`Unknown work target range: ${rangeType}`);
+  }
+
+  const remaining = Math.max(0, target - worked);
+  const todayDate = retriveYYYYMMDD(today);
+  const remainingStartDate = todayDate > startDate ? todayDate : startDate;
+  const remainingWorkingDays =
+    remainingStartDate <= endDate
+      ? countWorkingDays(remainingStartDate, endDate)
+      : 0;
+  const catchupPerWorkDay = rangeType !== 'daily';
+  const catchup = catchupPerWorkDay
+    ? remainingWorkingDays > 0
+      ? remaining / remainingWorkingDays
+      : 0
+    : remaining;
+
+  return {
+    target,
+    worked,
+    percentage: target > 0 ? Math.round((worked / target) * 100) : 0,
+    catchup,
+    catchupPerWorkDay,
+  };
+};
+
+const getClientWorkedTime = async (clientId, startDate, endDate) => {
+  const projects = await projectModel.selectByCliId(clientId);
+  const todayDate = retriveYYYYMMDD(new Date());
+  let totalSeconds = 0;
+  let workedTodaySeconds = 0;
+
+  for (const project of projects) {
+    const tasks = await taskModel.selectByProjectId(project.id);
+
+    for (const task of tasks) {
+      const entries = await timeEntryModel.selectByTaskIdWithDateRange(
+        task.id,
+        startDate,
+        endDate,
+      );
+      for (const entry of entries) {
+        const entryDate = retriveYYYYMMDD(new Date(entry.start));
+        if (entry.end) {
+          const duration = calculateDuration(entry.start, entry.end);
+          totalSeconds += duration;
+          if (entryDate === todayDate) workedTodaySeconds += duration;
+        } else if (entryDate === todayDate) {
+          const activeDuration = calculateDuration(entry.start, new Date());
+          totalSeconds += activeDuration;
+          workedTodaySeconds += activeDuration;
+        }
+      }
+    }
+  }
+
+  return {totalSeconds, workedTodaySeconds};
+};
+
 export const computeMonthlyTarget = ({
   targetHours,
   dailyTarget,
@@ -317,35 +416,11 @@ const pricingService = {
     } = getDaysLeft();
     const totalWorkingDays = getTotalWorkingDaysInMonth();
 
-    const projects = await projectModel.selectByCliId(clientId);
-    const todayStr = retriveYYYYMMDD(new Date());
-
-    let totalSeconds = 0;
-    let workedTodaySeconds = 0;
-
-    for (const project of projects) {
-      const tasks = await taskModel.selectByProjectId(project.id);
-
-      for (const task of tasks) {
-        const entries = await timeEntryModel.selectByTaskIdWithDateRange(
-          task.id,
-          startDateStr,
-          endDateStr,
-        );
-        for (const entry of entries) {
-          const entryDate = retriveYYYYMMDD(new Date(entry.start));
-          if (entry.end) {
-            const duration = calculateDuration(entry.start, entry.end);
-            totalSeconds += duration;
-            if (entryDate === todayStr) workedTodaySeconds += duration;
-          } else if (entryDate === todayStr) {
-            const activeDuration = calculateDuration(entry.start, new Date());
-            workedTodaySeconds += activeDuration;
-            totalSeconds += activeDuration;
-          }
-        }
-      }
-    }
+    const {totalSeconds, workedTodaySeconds} = await getClientWorkedTime(
+      clientId,
+      startDateStr,
+      endDateStr,
+    );
 
     return computeMonthlyTarget({
       targetHours,

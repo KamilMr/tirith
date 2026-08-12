@@ -1,5 +1,8 @@
 import {describe, it, expect} from 'vitest';
-import {computeMonthlyTarget} from './pricingService.js';
+import {
+  computeMonthlyTarget,
+  computeRangeWorkTarget,
+} from './pricingService.js';
 
 const h = hours => hours * 3600;
 const hm = (hours, minutes) => hours * 3600 + minutes * 60;
@@ -14,6 +17,95 @@ const base = {
   isTodayWorkDay: true,
   totalWorkingDays: 10,
 };
+
+describe('computeRangeWorkTarget', () => {
+  const rangeBase = {
+    targetHours: 170,
+    dailyTarget: 8.5,
+    totalSeconds: h(5),
+    startDate: '2026-03-16',
+    endDate: '2026-03-16',
+    today: new Date(2026, 2, 16, 12),
+  };
+
+  it('uses the daily target and reports the remaining daily catch-up', () => {
+    const result = computeRangeWorkTarget({
+      ...rangeBase,
+      rangeType: 'daily',
+    });
+
+    expect(result.target).toBe(8.5);
+    expect(result.worked).toBe(5);
+    expect(result.percentage).toBe(59);
+    expect(result.catchup).toBe(3.5);
+    expect(result.catchupPerWorkDay).toBe(false);
+  });
+
+  it('uses workdays for a weekly target and spreads catch-up over remaining workdays', () => {
+    const result = computeRangeWorkTarget({
+      ...rangeBase,
+      rangeType: 'weekly',
+      totalSeconds: h(25),
+      startDate: '2026-03-16',
+      endDate: '2026-03-22',
+      today: new Date(2026, 2, 18, 12),
+    });
+
+    expect(result.target).toBe(42.5);
+    expect(result.worked).toBe(25);
+    expect(result.percentage).toBe(59);
+    expect(result.catchup).toBeCloseTo(17.5 / 3, 5);
+    expect(result.catchupPerWorkDay).toBe(true);
+  });
+
+  it('keeps the configured monthly target for a monthly range', () => {
+    const result = computeRangeWorkTarget({
+      ...rangeBase,
+      rangeType: 'monthly',
+      startDate: '2026-03-01',
+      endDate: '2026-03-31',
+    });
+
+    expect(result.target).toBe(170);
+  });
+
+  it('uses twelve monthly targets for a yearly range', () => {
+    const result = computeRangeWorkTarget({
+      ...rangeBase,
+      rangeType: 'yearly',
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+    });
+
+    expect(result.target).toBe(2040);
+  });
+
+  it('derives a daily target from the selected month when none is configured', () => {
+    const result = computeRangeWorkTarget({
+      ...rangeBase,
+      rangeType: 'daily',
+      dailyTarget: null,
+      targetHours: 176,
+      totalSeconds: 0,
+    });
+
+    expect(result.target).toBe(8);
+  });
+
+  it('does not set a target for a weekend day', () => {
+    const result = computeRangeWorkTarget({
+      ...rangeBase,
+      rangeType: 'daily',
+      startDate: '2026-03-21',
+      endDate: '2026-03-21',
+      today: new Date(2026, 2, 21, 12),
+    });
+
+    expect(result.target).toBe(0);
+    expect(result.percentage).toBe(0);
+    expect(result.catchup).toBe(0);
+  });
+});
 
 describe('computeMonthlyTarget', () => {
   describe('hoursPerWorkDay', () => {
