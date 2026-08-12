@@ -56,6 +56,10 @@ const PeriodSummary = ({summary, loading, rangeLabel}) => {
                 value: formatDuration(summary.targetSeconds),
               },
               {
+                key: 'Remaining Target',
+                value: formatDuration(summary.remainingTargetSeconds),
+              },
+              {
                 key: 'Estimated Work',
                 value: formatDuration(summary.estimatedSeconds),
               },

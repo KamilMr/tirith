@@ -76,6 +76,7 @@ describe('computePeriodSummary', () => {
 
     expect(summary.workedSeconds).toBe(h(5));
     expect(summary.targetSeconds).toBe(h(60));
+    expect(summary.remainingTargetSeconds).toBe(h(55));
     expect(summary.estimatedSeconds).toBe(h(7));
     expect(summary.remainingEstimatedSeconds).toBe(h(2));
     expect(summary.taskCount).toBe(2);
@@ -105,6 +106,7 @@ describe('computePeriodSummary', () => {
         name: 'Atlas',
         workedSeconds: h(3),
         targetSeconds: h(40),
+        remainingTargetSeconds: h(37),
         estimatedSeconds: h(5),
         remainingEstimatedSeconds: h(2),
         earned: 300,
@@ -117,6 +119,7 @@ describe('computePeriodSummary', () => {
         name: 'Beacon',
         workedSeconds: h(2),
         targetSeconds: h(20),
+        remainingTargetSeconds: h(18),
         estimatedSeconds: h(2),
         remainingEstimatedSeconds: 0,
         earned: 300,

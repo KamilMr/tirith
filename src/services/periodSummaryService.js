@@ -43,13 +43,15 @@ export const computePeriodSummary = (snapshot, now = new Date()) => {
     });
     const estimatedSeconds = sumEstimatedSeconds(tasks);
     const workedSeconds = metrics?.totalSeconds || 0;
+    const targetSeconds = (metrics?.target || 0) * 3600;
     const hourlyRate = metrics?.hourlyRate ?? null;
 
     return {
       clientId: client.id,
       name: client.name,
       workedSeconds,
-      targetSeconds: (metrics?.target || 0) * 3600,
+      targetSeconds,
+      remainingTargetSeconds: Math.max(0, targetSeconds - workedSeconds),
       estimatedSeconds,
       remainingEstimatedSeconds: Math.max(0, estimatedSeconds - workedSeconds),
       earned: metrics?.earnings ?? null,
@@ -75,6 +77,10 @@ export const computePeriodSummary = (snapshot, now = new Date()) => {
     ),
     targetSeconds: clientSummaries.reduce(
       (total, client) => total + client.targetSeconds,
+      0,
+    ),
+    remainingTargetSeconds: clientSummaries.reduce(
+      (total, client) => total + client.remainingTargetSeconds,
       0,
     ),
     estimatedSeconds: clientSummaries.reduce(
