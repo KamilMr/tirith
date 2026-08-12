@@ -14,9 +14,9 @@ import {useComponentKeys} from '../hooks/useComponentKeys.js';
 import useScrollableList from '../hooks/useScrollableList.js';
 import useTaskAnalytics from '../hooks/useTaskAnalytics.js';
 import usePricing from '../hooks/usePricing.js';
-import useTotalEarnings from '../hooks/useTotalEarnings.js';
 import useEditorBuffer from '../hooks/useEditorBuffer.js';
 import useLiveClientMetrics from '../hooks/useLiveClientMetrics.js';
+import useLiveNow from '../hooks/useLiveNow.js';
 import {findTimeEntryOverlaps} from '../services/timeEntryOverlap.js';
 import {formatTimeEntryOverlapSummary} from '../services/timeEntryOverlapSummary.js';
 import {
@@ -32,13 +32,16 @@ import WorkTargets from './WorkTargets.js';
 import SelectableList from './SelectableList.js';
 import {
   formatTime,
+  formatCurrency,
   formatEstimation,
+  formatLiveDuration,
   sumEntryDurations,
   calculateDuration,
   formatRelativeTime,
   formatHour,
 } from '../utils.js';
 import {format} from 'date-fns';
+import {calculateEstimatedPrice} from '../services/pricingService.js';
 import {
   VIEW_RANGE_OPTIONS,
   formatViewPeriod,
@@ -103,6 +106,10 @@ const View = ({height}) => {
 
   const taskProject = allProjects.find(p => p.id === taskDetails?.project_id);
   const taskClient = clients.find(c => c.id === taskProject?.client_id);
+  const hasActiveSelectedTask = timeEntries.some(
+    entry => entry.task_id === selectedTaskId && !entry.end,
+  );
+  const taskNow = useLiveNow(hasActiveSelectedTask);
 
   const {
     selectedIndex: selectedEntryIndex,
@@ -114,13 +121,14 @@ const View = ({height}) => {
     currentRange.startDate,
     currentRange.endDate,
   );
-  const {pricing: totalPricing, loading: totalPricingLoading} =
-    useTotalEarnings(
-      currentRange.startDate,
-      currentRange.endDate,
-      reload,
-      taskClient,
-    );
+  const {pricing: taskPricing, loading: taskPricingLoading} = usePricing(
+    selectedTaskId,
+    null,
+    null,
+    currentRange.startDate,
+    currentRange.endDate,
+    reload,
+  );
   const {pricing: projectPricing, loading: projectPricingLoading} = usePricing(
     null,
     selectedProjectId,
@@ -330,13 +338,33 @@ const View = ({height}) => {
     const selectedTaskEntries = timeEntries.filter(
       e => e.task_id === selectedTaskId,
     );
-    const totalSeconds = sumEntryDurations(selectedTaskEntries);
-
-    const activeEntries = timeEntries.filter(e => !e.end).length;
+    const completedSeconds = sumEntryDurations(selectedTaskEntries);
+    const activeSeconds = selectedTaskEntries.reduce(
+      (total, entry) =>
+        entry.start && !entry.end
+          ? total + Math.max(0, calculateDuration(entry.start, taskNow))
+          : total,
+      0,
+    );
+    const totalSeconds = completedSeconds + activeSeconds;
+    const activeEntries = selectedTaskEntries.filter(e => !e.end).length;
     const estimatedSec = taskDetails.estimated_minutes
       ? taskDetails.estimated_minutes * 60
       : null;
     const isOvertime = estimatedSec && totalSeconds > estimatedSec;
+    const estimatedPrice = calculateEstimatedPrice(
+      taskDetails.estimated_minutes,
+      taskPricing?.hourlyRate,
+    );
+    const renderPrice = price => {
+      if (taskPricingLoading && !taskPricing)
+        return <Text dimColor>Loading...</Text>;
+      return price === null || price === undefined ? (
+        <Text dimColor>None</Text>
+      ) : (
+        formatCurrency(price, taskPricing.currency)
+      );
+    };
     const selectedEntry = timeEntries[selectedEntryIndex];
     const entryBeingChecked = draftEntry || selectedEntry;
     const entryOverlaps = entryBeingChecked?.end
@@ -373,9 +401,17 @@ const View = ({height}) => {
                   key: 'Total',
                   value: (
                     <Text color={isOvertime ? 'red' : undefined}>
-                      {formatTime(totalSeconds) || '-'}
+                      {formatLiveDuration(totalSeconds, activeSeconds)}
                     </Text>
                   ),
+                },
+                {
+                  key: 'Estimated Price',
+                  value: renderPrice(estimatedPrice),
+                },
+                {
+                  key: 'Current Price',
+                  value: renderPrice(taskPricing?.earnings),
                 },
               ]}
             />
@@ -429,7 +465,7 @@ const View = ({height}) => {
           </Box>
 
           <Box width={25} marginLeft={2}>
-            <Earnings pricing={totalPricing} loading={totalPricingLoading} />
+            <Earnings pricing={taskPricing} loading={taskPricingLoading} />
           </Box>
         </Box>
 
@@ -459,7 +495,7 @@ const View = ({height}) => {
                   End
                 </Text>
               </Box>
-              <Box width={14}>
+              <Box width={20}>
                 <Text bold dimColor>
                   Duration
                 </Text>
@@ -485,9 +521,10 @@ const View = ({height}) => {
                     : isSelectedTask
                       ? '#E8A030'
                       : 'white';
-                const duration = displayEntry.end
-                  ? calculateDuration(displayEntry.start, displayEntry.end)
-                  : 0;
+                const duration = calculateDuration(
+                  displayEntry.start,
+                  displayEntry.end || taskNow,
+                );
                 const rowOverlaps = displayEntry.end
                   ? findTimeEntryOverlaps(displayEntry, timeEntries)
                   : [];
@@ -517,7 +554,7 @@ const View = ({height}) => {
                         )}
                       </Text>
                     </Box>
-                    <Box width={14}>
+                    <Box width={20}>
                       <Text color={color}>
                         {duration > 0 ? formatTime(duration) : '-'}
                         {isDraftRow ? ' [draft]' : ''}
