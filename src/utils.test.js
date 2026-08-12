@@ -1,3 +1,4 @@
+import {TZDate} from '@date-fns/tz';
 import {describe, it, expect, afterEach} from 'vitest';
 import {
   getTimezone,
@@ -62,6 +63,19 @@ describe('time entry duration utilities', () => {
         date: '2026-03-18',
       }),
     ).toBe(3 * 3600);
+  });
+
+  it("uses the entry's local timezone when matching its selected date", () => {
+    const localStart = new TZDate(2026, 2, 18, 0, 30, 0, 'Europe/Warsaw');
+    const localNow = new TZDate(2026, 2, 18, 1, 30, 0, 'Europe/Warsaw');
+
+    expect(
+      sumLiveEntryDurations([{...active, start: localStart}], {
+        now: localNow,
+        projectId: 1,
+        date: '2026-03-18',
+      }),
+    ).toBe(3600);
   });
 });
 

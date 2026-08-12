@@ -193,7 +193,7 @@ const getClientWorkedTime = async (clientId, startDate, endDate) => {
 
 export const computeLiveClientMetrics = (snapshot, now = new Date()) => {
   const activeStartDate = snapshot.activeEntry
-    ? retriveYYYYMMDD(new Date(snapshot.activeEntry.start))
+    ? retriveYYYYMMDD(snapshot.activeEntry.start)
     : null;
   const hasApplicableActiveEntry =
     snapshot.activeEntry?.clientId === snapshot.clientId &&

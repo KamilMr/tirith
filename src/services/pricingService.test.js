@@ -1,3 +1,4 @@
+import {TZDate} from '@date-fns/tz';
 import {describe, it, expect} from 'vitest';
 import {
   computeLiveClientMetrics,
@@ -241,6 +242,26 @@ describe('computeLiveClientMetrics', () => {
 
     expect(result.totalSeconds).toBe(h(16));
     expect(result.earnings).toBe(1600);
+  });
+
+  it("uses the active entry's local timezone when checking the range", () => {
+    const start = new TZDate(2026, 2, 18, 0, 30, 0, 'Europe/Warsaw');
+    const localNow = new TZDate(2026, 2, 18, 1, 30, 0, 'Europe/Warsaw');
+    const result = computeLiveClientMetrics(
+      {
+        ...snapshot,
+        rangeType: 'daily',
+        startDate: '2026-03-18',
+        endDate: '2026-03-18',
+        completedSeconds: 0,
+        completedEarnings: 0,
+        activeEntry: {...snapshot.activeEntry, start},
+      },
+      localNow,
+    );
+
+    expect(result.activeSeconds).toBe(3600);
+    expect(result.worked).toBe(1);
   });
 });
 

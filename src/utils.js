@@ -199,7 +199,7 @@ export const sumLiveEntryDurations = (
   entries.reduce((total, entry) => {
     if (!entry.start) return total;
     if (projectId !== undefined && entry.project_id !== projectId) return total;
-    if (date && retriveYYYYMMDD(new Date(entry.start)) !== date) return total;
+    if (date && retriveYYYYMMDD(entry.start) !== date) return total;
 
     const end = entry.end || now;
     return total + Math.max(0, calculateDuration(entry.start, end));
