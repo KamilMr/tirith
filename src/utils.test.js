@@ -67,9 +67,7 @@ describe('time entry duration utilities', () => {
   });
 
   it('formats a live total with its active duration', () => {
-    expect(formatLiveDuration(3 * 3600, 2 * 3600)).toBe(
-      '3h 0m 0s (+2h 0m 0s)',
-    );
+    expect(formatLiveDuration(3 * 3600, 2 * 3600)).toBe('3h 0m 0s (+2h 0m 0s)');
   });
 
   it('formats a stopped total without an active suffix', () => {

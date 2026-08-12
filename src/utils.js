@@ -163,9 +163,7 @@ export const formatTime = seconds => {
 
 export const formatLiveDuration = (totalSeconds, activeSeconds = 0) => {
   const total = formatTime(totalSeconds) || '-';
-  return activeSeconds > 0
-    ? `${total} (+${formatTime(activeSeconds)})`
-    : total;
+  return activeSeconds > 0 ? `${total} (+${formatTime(activeSeconds)})` : total;
 };
 
 export const formatEstimation = minutes => {

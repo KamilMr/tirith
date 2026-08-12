@@ -64,8 +64,7 @@ const usePricing = (
     };
   }, [taskId, projectId, clientId, startDate, endDate, reload]);
 
-  const currentPricing =
-    taskId && pricing?.taskId !== taskId ? null : pricing;
+  const currentPricing = taskId && pricing?.taskId !== taskId ? null : pricing;
   const now = useLiveNow(Boolean(taskId && currentPricing?.activeEntry));
   const livePricing = useMemo(
     () =>
