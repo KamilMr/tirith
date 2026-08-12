@@ -434,35 +434,31 @@ const pricingService = {
     });
   },
 
-  getClientWorkBreakdown: async clientId => {
-    const monthly = await pricingService.getClientMonthlyTarget(clientId);
-
-    const dailyTarget =
-      monthly.dailyTarget ||
-      (monthly.totalWorkingDays > 0
-        ? monthly.targetHours / monthly.totalWorkingDays
-        : 0);
-    const workedTodayHours = monthly.workedTodaySeconds / 3600;
-    const dailyRequired = monthly.hoursPerWorkDayRaw;
-    const todayPaceDelta = workedTodayHours - monthly.todayBaselineRaw;
-    const percentage =
-      monthly.targetHours > 0
-        ? Math.round((monthly.workedHours / monthly.targetHours) * 100)
-        : 0;
+  getClientWorkBreakdown: async (clientId, rangeType, startDate, endDate) => {
+    const client = await clientModel.selectById(clientId);
+    const targetHours = client?.monthly_hours || 170;
+    const dailyTarget = client?.daily_hours
+      ? parseFloat(client.daily_hours)
+      : null;
+    const {totalSeconds} = await getClientWorkedTime(
+      clientId,
+      startDate,
+      endDate,
+    );
 
     return {
-      monthly: {
-        target: monthly.targetHours,
-        worked: monthly.workedHours,
-        percentage,
-      },
-      today: {
-        target: dailyTarget,
-        required: dailyRequired,
-        worked: workedTodayHours,
-        paceDelta: todayPaceDelta,
-        catchup: monthly.overflowHoursRaw,
-      },
+      clientId,
+      rangeType,
+      startDate,
+      endDate,
+      ...computeRangeWorkTarget({
+        rangeType,
+        targetHours,
+        dailyTarget,
+        totalSeconds,
+        startDate,
+        endDate,
+      }),
     };
   },
 };

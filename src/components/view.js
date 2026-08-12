@@ -73,19 +73,6 @@ const View = ({height}) => {
   const [draftEntry, setDraftEntry] = useState(null);
   const [lastSection, setLastSection] = useState(null);
   const [dashboardTasks, setDashboardTasks] = useState([]);
-  const [workBreakdown] = usePolling(
-    () =>
-      selectedClientId
-        ? pricingService.getClientWorkBreakdown(selectedClientId)
-        : null,
-    [selectedClientId, reload],
-  );
-
-  useEffect(() => {
-    if (isClientFocused) setLastSection('client');
-    else if (isProjectsFocused) setLastSection('project');
-    else if (isTasksFocused) setLastSection('task');
-  }, [isClientFocused, isProjectsFocused, isTasksFocused]);
   const [selectedRangeIndex, setSelectedRangeIndex] = useState(0);
   const [rangeAnchor, setRangeAnchor] = useState(() => new Date());
   const [viewLevel, setViewLevel] = useState('range');
@@ -93,6 +80,38 @@ const View = ({height}) => {
   const selectedRange = VIEW_RANGE_OPTIONS[selectedRangeIndex];
   const currentRange = getViewDateRange(selectedRange.type, rangeAnchor);
   const periodLabel = formatViewPeriod(selectedRange.type, rangeAnchor);
+  const [workBreakdown] = usePolling(
+    () =>
+      selectedClientId
+        ? pricingService.getClientWorkBreakdown(
+            selectedClientId,
+            selectedRange.type,
+            currentRange.startDate,
+            currentRange.endDate,
+          )
+        : null,
+    [
+      selectedClientId,
+      selectedRange.type,
+      currentRange.startDate,
+      currentRange.endDate,
+      reload,
+    ],
+  );
+  const currentWorkBreakdown =
+    workBreakdown?.clientId === selectedClientId &&
+    workBreakdown?.rangeType === selectedRange.type &&
+    workBreakdown?.startDate === currentRange.startDate &&
+    workBreakdown?.endDate === currentRange.endDate
+      ? workBreakdown
+      : null;
+
+  useEffect(() => {
+    if (isClientFocused) setLastSection('client');
+    else if (isProjectsFocused) setLastSection('project');
+    else if (isTasksFocused) setLastSection('task');
+  }, [isClientFocused, isProjectsFocused, isTasksFocused]);
+
   const taskProject = allProjects.find(p => p.id === taskDetails?.project_id);
   const taskClient = clients.find(c => c.id === taskProject?.client_id);
 
@@ -599,8 +618,9 @@ const View = ({height}) => {
           </Box>
           <Box width={30} marginLeft={2}>
             <WorkTargets
-              breakdown={workBreakdown}
-              loading={!workBreakdown && !!selectedClientId}
+              breakdown={currentWorkBreakdown}
+              loading={!currentWorkBreakdown && !!selectedClientId}
+              rangeLabel={selectedRange.label}
             />
           </Box>
         </Box>
