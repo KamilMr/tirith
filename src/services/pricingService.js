@@ -489,32 +489,60 @@ const pricingService = {
     });
   },
 
-  getClientWorkBreakdown: async (clientId, rangeType, startDate, endDate) => {
-    const client = await clientModel.selectById(clientId);
-    const targetHours = client?.monthly_hours || 170;
-    const dailyTarget = client?.daily_hours
-      ? parseFloat(client.daily_hours)
+  getClientMetricSnapshot: async (clientId, rangeType, startDate, endDate) => {
+    const [client, rates, currentRate, entries, projects, tasks] =
+      await Promise.all([
+        clientModel.selectById(clientId),
+        clientRateHistory.getRatesInRange(clientId, startDate, endDate),
+        clientRateHistory.getCurrentRate(clientId),
+        timeEntryModel.selectByDateRangeWithTask({
+          startDate,
+          endDate,
+          clientId,
+        }),
+        projectModel.selectByCliId(clientId),
+        taskModel.selectByClientId(clientId),
+      ]);
+    const completed = calculateEntriesEarnings(entries, rates);
+    const activeEntry = entries.find(entry => !entry.end);
+    const activeRate = activeEntry
+      ? findRateForDate(rates, activeEntry.start)
       : null;
-    const {totalSeconds} = await getClientWorkedTime(
-      clientId,
-      startDate,
-      endDate,
-    );
 
     return {
       clientId,
       rangeType,
       startDate,
       endDate,
-      ...computeRangeWorkTarget({
-        rangeType,
-        targetHours,
-        dailyTarget,
-        totalSeconds,
-        startDate,
-        endDate,
-      }),
+      targetHours: client?.monthly_hours || 170,
+      dailyTarget: client?.daily_hours ? parseFloat(client.daily_hours) : null,
+      completedSeconds: completed.totalSeconds,
+      completedEarnings: completed.totalEarnings,
+      activeEntry: activeEntry
+        ? {
+            clientId,
+            start: activeEntry.start,
+            hourlyRate: activeRate?.hourly_rate ?? null,
+          }
+        : null,
+      hourlyRate: currentRate?.hourly_rate ?? null,
+      currency: currentRate?.currency || client?.currency || 'PLN',
+      dateRangeDays:
+        differenceInDays(parseISO(endDate), parseISO(startDate)) + 1,
+      projectCount: projects.length,
+      taskCount: tasks.length,
+      fetchedAt: new Date(),
     };
+  },
+
+  getClientWorkBreakdown: async (clientId, rangeType, startDate, endDate) => {
+    const snapshot = await pricingService.getClientMetricSnapshot(
+      clientId,
+      rangeType,
+      startDate,
+      endDate,
+    );
+    return computeLiveClientMetrics(snapshot, snapshot.fetchedAt);
   },
 };
 

@@ -33,6 +33,12 @@ const task = {
   selectByProjectId: projectId =>
     db(TABLE).select().where('project_id', projectId).orderBy('title', 'asc'),
 
+  selectByClientId: clientId =>
+    db(TABLE)
+      .join('project', 'task.project_id', 'project.id')
+      .select('task.*')
+      .where('project.client_id', clientId),
+
   selectByProjectIdWithActivity: projectId => {
     const activity = db('time_entry')
       .join('task as activity_task', 'time_entry.task_id', 'activity_task.id')
