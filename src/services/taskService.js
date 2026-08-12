@@ -78,6 +78,22 @@ const saveManualTimeEntry = async (taskId, parsed) => {
   return {entryId, taskId, ...parsed};
 };
 
+const calculateTimeSpendFromSeconds = (seconds, isT1 = false) => {
+  let totalSeconds = seconds;
+  let hours = Math.floor(totalSeconds / 3600);
+
+  if (isT1) {
+    try {
+      const {t1} = require('../utils/t1.js');
+      hours = t1(hours, isT1);
+      totalSeconds = hours * 3600 + (totalSeconds % 3600);
+    } catch (e) {}
+  }
+
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  return {hours, minutes, totalSeconds};
+};
+
 const groupTaskEntries = entries =>
   Object.values(
     entries.reduce((tasks, entry) => {
@@ -384,22 +400,10 @@ const taskService = {
     return entries.filter(entry => entry.project_id === projectId);
   },
 
-  calculateTimeSpend: (entries, isT1 = false) => {
-    let totalSeconds = sumEntryDurations(entries);
-    let hours = Math.floor(totalSeconds / 3600);
+  calculateTimeSpend: (entries, isT1 = false) =>
+    calculateTimeSpendFromSeconds(sumEntryDurations(entries), isT1),
 
-    if (isT1) {
-      try {
-        const {t1} = require('../utils/t1.js');
-        hours = t1(hours, isT1);
-        totalSeconds = hours * 3600 + (totalSeconds % 3600);
-      } catch (e) {}
-    }
-
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-    return {hours, minutes, totalSeconds};
-  },
+  calculateTimeSpendFromSeconds,
 
   getTasksByDateRange: async (startDate, endDate) => {
     const entries = await timeEntryModel.selectByDateRangeWithTask({

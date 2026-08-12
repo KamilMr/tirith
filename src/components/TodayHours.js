@@ -1,34 +1,65 @@
-import React, {useState, useEffect} from 'react';
-
+import React, {useEffect, useMemo, useState} from 'react';
 import {Text} from 'ink';
-
 import taskService from '../services/taskService.js';
 import {useData} from '../contexts/DataContext.js';
+import useLiveNow from '../hooks/useLiveNow.js';
+import {retriveYYYYMMDD, sumLiveEntryDurations} from '../utils.js';
 
 const TodayHours = ({selectedDate, isT1 = false}) => {
   const {selectedProjectId, reload} = useData();
-  const [todayHours, setTodayHours] = useState({hours: 0, minutes: 0});
+  const [snapshot, setSnapshot] = useState(null);
+  const date =
+    typeof selectedDate === 'string'
+      ? selectedDate
+      : retriveYYYYMMDD(selectedDate);
+  const isCurrentSnapshot =
+    snapshot?.projectId === selectedProjectId && snapshot?.date === date;
+  const entries = isCurrentSnapshot ? snapshot.entries : [];
+  const now = useLiveNow(entries.some(entry => !entry.end));
 
   useEffect(() => {
+    if (!selectedProjectId) {
+      setSnapshot(null);
+      return undefined;
+    }
+
+    let cancelled = false;
     const loadTodayHours = async () => {
       try {
-        const tasks = await taskService.getTasksByProjectAndDate(
+        const nextEntries = await taskService.getTasksByProjectAndDate(
           selectedProjectId,
-          selectedDate,
+          date,
         );
-        const timeSpent = taskService.calculateTimeSpend(tasks, isT1);
-        setTodayHours(timeSpent);
+        if (!cancelled)
+          setSnapshot({
+            projectId: selectedProjectId,
+            date,
+            entries: nextEntries,
+          });
       } catch (error) {
         console.error('Error loading today hours:', error);
       }
     };
 
-    if (selectedProjectId) {
-      loadTodayHours();
-    } else {
-      setTodayHours({hours: 0, minutes: 0});
-    }
-  }, [selectedDate, selectedProjectId, isT1, reload]);
+    loadTodayHours();
+    return () => {
+      cancelled = true;
+    };
+  }, [date, selectedProjectId, reload]);
+
+  const totalSeconds = useMemo(
+    () =>
+      sumLiveEntryDurations(entries, {
+        now,
+        projectId: selectedProjectId,
+        date,
+      }),
+    [entries, now, selectedProjectId, date],
+  );
+  const todayHours = taskService.calculateTimeSpendFromSeconds(
+    totalSeconds,
+    isT1,
+  );
 
   return (
     <Text>
