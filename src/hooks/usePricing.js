@@ -1,5 +1,8 @@
-import {useState, useEffect} from 'react';
-import pricingService from '../services/pricingService.js';
+import {useState, useEffect, useMemo} from 'react';
+import pricingService, {
+  computeLiveTaskPricing,
+} from '../services/pricingService.js';
+import useLiveNow from './useLiveNow.js';
 
 const usePricing = (
   taskId,
@@ -61,7 +64,18 @@ const usePricing = (
     };
   }, [taskId, projectId, clientId, startDate, endDate, reload]);
 
-  return {pricing, loading, error};
+  const currentPricing =
+    taskId && pricing?.taskId !== taskId ? null : pricing;
+  const now = useLiveNow(Boolean(taskId && currentPricing?.activeEntry));
+  const livePricing = useMemo(
+    () =>
+      taskId && currentPricing
+        ? computeLiveTaskPricing(currentPricing, now)
+        : currentPricing,
+    [taskId, currentPricing, now],
+  );
+
+  return {pricing: livePricing, loading, error};
 };
 
 export default usePricing;

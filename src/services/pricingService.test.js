@@ -1,7 +1,9 @@
 import {TZDate} from '@date-fns/tz';
 import {describe, it, expect} from 'vitest';
 import {
+  calculateEstimatedPrice,
   computeLiveClientMetrics,
+  computeLiveTaskPricing,
   computeMonthlyTarget,
   computeRangeWorkTarget,
 } from './pricingService.js';
@@ -262,6 +264,60 @@ describe('computeLiveClientMetrics', () => {
 
     expect(result.activeSeconds).toBe(3600);
     expect(result.worked).toBe(1);
+  });
+});
+
+describe('computeLiveTaskPricing', () => {
+  const snapshot = {
+    startDate: '2026-03-18',
+    endDate: '2026-03-18',
+    hourlyRate: 150,
+    currency: 'PLN',
+    totalSeconds: h(1),
+    earnings: 100,
+    activeEntry: {
+      start: new Date('2026-03-18T10:00:00Z'),
+      hourlyRate: 120,
+    },
+  };
+
+  it('adds active duration and earnings at the active entry rate', () => {
+    const result = computeLiveTaskPricing(
+      snapshot,
+      new Date('2026-03-18T12:00:00Z'),
+    );
+
+    expect(result.activeSeconds).toBe(h(2));
+    expect(result.totalSeconds).toBe(h(3));
+    expect(result.earnings).toBe(340);
+  });
+
+  it('does not add an active entry outside the selected range', () => {
+    const result = computeLiveTaskPricing(
+      {
+        ...snapshot,
+        activeEntry: {
+          ...snapshot.activeEntry,
+          start: new Date('2026-03-17T23:00:00Z'),
+        },
+      },
+      new Date('2026-03-18T12:00:00Z'),
+    );
+
+    expect(result.activeSeconds).toBe(0);
+    expect(result.totalSeconds).toBe(h(1));
+    expect(result.earnings).toBe(100);
+  });
+});
+
+describe('calculateEstimatedPrice', () => {
+  it('prices estimated minutes at the current hourly rate', () => {
+    expect(calculateEstimatedPrice(90, 175)).toBe(262.5);
+  });
+
+  it('returns null when estimation or rate is unavailable', () => {
+    expect(calculateEstimatedPrice(null, 175)).toBeNull();
+    expect(calculateEstimatedPrice(90, null)).toBeNull();
   });
 });
 

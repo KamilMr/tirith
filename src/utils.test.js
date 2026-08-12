@@ -5,6 +5,7 @@ import {
   getLocalNow,
   toUTC,
   fromUTC,
+  formatLiveDuration,
   getUTCDateRange,
   sumEntryDurations,
   sumLiveEntryDurations,
@@ -63,6 +64,16 @@ describe('time entry duration utilities', () => {
         date: '2026-03-18',
       }),
     ).toBe(3 * 3600);
+  });
+
+  it('formats a live total with its active duration', () => {
+    expect(formatLiveDuration(3 * 3600, 2 * 3600)).toBe(
+      '3h 0m 0s (+2h 0m 0s)',
+    );
+  });
+
+  it('formats a stopped total without an active suffix', () => {
+    expect(formatLiveDuration(3600, 0)).toBe('1h 0m 0s');
   });
 
   it("uses the entry's local timezone when matching its selected date", () => {

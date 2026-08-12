@@ -98,6 +98,12 @@ const countWorkingDays = (startDate, endDate) =>
     end: parseISO(endDate),
   }).filter(day => !isWeekend(day)).length;
 
+export const calculateEstimatedPrice = (estimatedMinutes, hourlyRate) => {
+  if (!estimatedMinutes || hourlyRate === null || hourlyRate === undefined)
+    return null;
+  return (estimatedMinutes / 60) * hourlyRate;
+};
+
 export const computeRangeWorkTarget = ({
   rangeType,
   targetHours,
@@ -246,6 +252,34 @@ export const computeLiveClientMetrics = (snapshot, now = new Date()) => {
   };
 };
 
+export const computeLiveTaskPricing = (snapshot, now = new Date()) => {
+  const activeStartDate = snapshot.activeEntry
+    ? retriveYYYYMMDD(snapshot.activeEntry.start)
+    : null;
+  const hasApplicableActiveEntry =
+    snapshot.activeEntry &&
+    activeStartDate >= snapshot.startDate &&
+    activeStartDate <= snapshot.endDate;
+  const activeSeconds = hasApplicableActiveEntry
+    ? Math.max(0, calculateDuration(snapshot.activeEntry.start, now))
+    : 0;
+  const activeEarnings =
+    hasApplicableActiveEntry && snapshot.activeEntry.hourlyRate !== null
+      ? (activeSeconds / 3600) * snapshot.activeEntry.hourlyRate
+      : 0;
+  const earnings =
+    snapshot.earnings === null ? null : snapshot.earnings + activeEarnings;
+  const totalSeconds = snapshot.totalSeconds + activeSeconds;
+
+  return {
+    ...snapshot,
+    totalSeconds,
+    hours: totalSeconds / 3600,
+    earnings,
+    activeSeconds,
+  };
+};
+
 export const computeMonthlyTarget = ({
   targetHours,
   dailyTarget,
@@ -339,14 +373,26 @@ const pricingService = {
       entries,
       rates,
     );
-    const hours = totalSeconds / 3600;
+    const activeEntry = entries.find(entry => !entry.end);
+    const activeRate = activeEntry
+      ? findRateForDate(rates, activeEntry.start)
+      : null;
 
     return {
+      taskId,
+      startDate,
+      endDate,
       hourlyRate: currentRate.hourly_rate,
       totalSeconds,
-      hours,
+      hours: totalSeconds / 3600,
       earnings: totalEarnings,
-      currency,
+      activeEntry: activeEntry
+        ? {
+            start: activeEntry.start,
+            hourlyRate: activeRate?.hourly_rate ?? null,
+          }
+        : null,
+      currency: currentRate.currency || currency,
       dateRangeDays: days,
     };
   },
