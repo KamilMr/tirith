@@ -1,5 +1,6 @@
 import {describe, it, expect} from 'vitest';
 import {
+  computeLiveClientMetrics,
   computeMonthlyTarget,
   computeRangeWorkTarget,
 } from './pricingService.js';
@@ -104,6 +105,142 @@ describe('computeRangeWorkTarget', () => {
     expect(result.target).toBe(0);
     expect(result.percentage).toBe(0);
     expect(result.catchup).toBe(0);
+  });
+});
+
+describe('computeLiveClientMetrics', () => {
+  const now = new Date('2026-03-18T12:00:00Z');
+  const snapshot = {
+    clientId: 7,
+    rangeType: 'weekly',
+    startDate: '2026-03-16',
+    endDate: '2026-03-22',
+    targetHours: 200,
+    dailyTarget: 8,
+    completedSeconds: h(16),
+    completedEarnings: 1600,
+    activeEntry: {
+      clientId: 7,
+      start: new Date('2026-03-18T10:00:00Z'),
+      hourlyRate: 120,
+    },
+    hourlyRate: 150,
+    currency: 'PLN',
+    dateRangeDays: 7,
+    projectCount: 2,
+    taskCount: 4,
+  };
+
+  it('adds increasing active seconds to worked hours exactly once', () => {
+    const first = computeLiveClientMetrics(snapshot, now);
+    const later = computeLiveClientMetrics(
+      snapshot,
+      new Date('2026-03-18T12:30:00Z'),
+    );
+
+    expect(first.totalSeconds).toBe(h(18));
+    expect(first.worked).toBe(18);
+    expect(later.totalSeconds).toBe(h(18.5));
+    expect(later.worked).toBe(18.5);
+  });
+
+  it('decreases weekly catch-up as active time increases', () => {
+    const first = computeLiveClientMetrics(snapshot, now);
+    const later = computeLiveClientMetrics(
+      snapshot,
+      new Date('2026-03-18T13:00:00Z'),
+    );
+
+    expect(later.catchup).toBeLessThan(first.catchup);
+    expect(first.catchup - later.catchup).toBeCloseTo(1 / 3, 5);
+  });
+
+  it('uses the rate effective at the active entry start for live earnings', () => {
+    const result = computeLiveClientMetrics(snapshot, now);
+
+    expect(result.earnings).toBe(1840);
+  });
+
+  it('calculates expected monthly earnings for a 200-hour target', () => {
+    const result = computeLiveClientMetrics(
+      {
+        ...snapshot,
+        rangeType: 'monthly',
+        startDate: '2026-03-01',
+        endDate: '2026-03-31',
+      },
+      now,
+    );
+
+    expect(result.target).toBe(200);
+    expect(result.expectedEarnings).toBe(29140);
+  });
+
+  it('preserves historical earnings and prices remaining target time at the current rate', () => {
+    const result = computeLiveClientMetrics(
+      {
+        ...snapshot,
+        rangeType: 'monthly',
+        startDate: '2026-03-01',
+        endDate: '2026-03-31',
+        completedSeconds: h(100),
+        completedEarnings: 10000,
+        activeEntry: null,
+      },
+      now,
+    );
+
+    expect(result.expectedEarnings).toBe(25000);
+  });
+
+  it('uses live earnings as expected earnings when the target is exceeded', () => {
+    const result = computeLiveClientMetrics(
+      {
+        ...snapshot,
+        rangeType: 'monthly',
+        startDate: '2026-03-01',
+        endDate: '2026-03-31',
+        completedSeconds: h(201),
+        completedEarnings: 25000,
+        activeEntry: null,
+      },
+      now,
+    );
+
+    expect(result.expectedEarnings).toBe(25000);
+  });
+
+  it('keeps earnings unavailable when no rate is configured', () => {
+    const result = computeLiveClientMetrics(
+      {
+        ...snapshot,
+        completedEarnings: 0,
+        activeEntry: {...snapshot.activeEntry, hourlyRate: null},
+        hourlyRate: null,
+      },
+      now,
+    );
+
+    expect(result.hourlyRate).toBeNull();
+    expect(result.earnings).toBeNull();
+    expect(result.expectedEarnings).toBeNull();
+    expect(result.worked).toBe(18);
+  });
+
+  it('does not add an active entry whose start is outside the selected range', () => {
+    const result = computeLiveClientMetrics(
+      {
+        ...snapshot,
+        activeEntry: {
+          ...snapshot.activeEntry,
+          start: new Date('2026-03-15T23:00:00Z'),
+        },
+      },
+      now,
+    );
+
+    expect(result.totalSeconds).toBe(h(16));
+    expect(result.earnings).toBe(1600);
   });
 });
 

@@ -191,6 +191,61 @@ const getClientWorkedTime = async (clientId, startDate, endDate) => {
   return {totalSeconds, workedTodaySeconds};
 };
 
+export const computeLiveClientMetrics = (snapshot, now = new Date()) => {
+  const activeStartDate = snapshot.activeEntry
+    ? retriveYYYYMMDD(new Date(snapshot.activeEntry.start))
+    : null;
+  const hasApplicableActiveEntry =
+    snapshot.activeEntry?.clientId === snapshot.clientId &&
+    activeStartDate >= snapshot.startDate &&
+    activeStartDate <= snapshot.endDate;
+  const activeSeconds = hasApplicableActiveEntry
+    ? Math.max(0, calculateDuration(snapshot.activeEntry.start, now))
+    : 0;
+  const totalSeconds = snapshot.completedSeconds + activeSeconds;
+  const workTarget = computeRangeWorkTarget({
+    rangeType: snapshot.rangeType,
+    targetHours: snapshot.targetHours,
+    dailyTarget: snapshot.dailyTarget,
+    totalSeconds,
+    startDate: snapshot.startDate,
+    endDate: snapshot.endDate,
+    today: now,
+  });
+
+  const hasRate = snapshot.hourlyRate !== null;
+  const activeEarnings =
+    hasApplicableActiveEntry && snapshot.activeEntry.hourlyRate !== null
+      ? (activeSeconds / 3600) * snapshot.activeEntry.hourlyRate
+      : 0;
+  const earnings = hasRate ? snapshot.completedEarnings + activeEarnings : null;
+  const remainingTargetHours = Math.max(
+    0,
+    workTarget.target - workTarget.worked,
+  );
+  const expectedEarnings = hasRate
+    ? earnings + remainingTargetHours * snapshot.hourlyRate
+    : null;
+
+  return {
+    clientId: snapshot.clientId,
+    rangeType: snapshot.rangeType,
+    startDate: snapshot.startDate,
+    endDate: snapshot.endDate,
+    hourlyRate: snapshot.hourlyRate,
+    currency: snapshot.currency,
+    dateRangeDays: snapshot.dateRangeDays,
+    projectCount: snapshot.projectCount,
+    taskCount: snapshot.taskCount,
+    totalSeconds,
+    hours: totalSeconds / 3600,
+    earnings,
+    expectedEarnings,
+    activeSeconds,
+    ...workTarget,
+  };
+};
+
 export const computeMonthlyTarget = ({
   targetHours,
   dailyTarget,

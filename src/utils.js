@@ -192,6 +192,19 @@ export const sumEntryDurations = entries => {
   }, 0);
 };
 
+export const sumLiveEntryDurations = (
+  entries,
+  {now = new Date(), projectId, date} = {},
+) =>
+  entries.reduce((total, entry) => {
+    if (!entry.start) return total;
+    if (projectId !== undefined && entry.project_id !== projectId) return total;
+    if (date && retriveYYYYMMDD(new Date(entry.start)) !== date) return total;
+
+    const end = entry.end || now;
+    return total + Math.max(0, calculateDuration(entry.start, end));
+  }, 0);
+
 // Analytics formatting utilities
 export const formatPercentage = (value, decimals = 0) => {
   if (value === null || value === undefined) return null;

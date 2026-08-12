@@ -5,7 +5,65 @@ import {
   toUTC,
   fromUTC,
   getUTCDateRange,
+  sumEntryDurations,
+  sumLiveEntryDurations,
 } from './utils.js';
+
+describe('time entry duration utilities', () => {
+  const completed = {
+    start: new Date('2026-03-18T08:00:00Z'),
+    end: new Date('2026-03-18T09:00:00Z'),
+    project_id: 1,
+  };
+  const active = {
+    start: new Date('2026-03-18T10:00:00Z'),
+    end: null,
+    project_id: 1,
+  };
+  const now = new Date('2026-03-18T12:00:00Z');
+
+  it('adds completed and active durations exactly once', () => {
+    expect(
+      sumLiveEntryDurations([completed, active], {
+        now,
+        projectId: 1,
+        date: '2026-03-18',
+      }),
+    ).toBe(3 * 3600);
+  });
+
+  it('keeps completed-only behavior unchanged for existing callers', () => {
+    expect(sumEntryDurations([completed, active])).toBe(3600);
+  });
+
+  it('does not add entries from another project or date', () => {
+    const otherProject = {...active, project_id: 2};
+    const otherDate = {
+      ...active,
+      start: new Date('2026-03-17T10:00:00Z'),
+    };
+
+    expect(
+      sumLiveEntryDurations([completed, otherProject, otherDate], {
+        now,
+        projectId: 1,
+        date: '2026-03-18',
+      }),
+    ).toBe(3600);
+  });
+
+  it('does not double-count an active duration after it is stopped and reloaded', () => {
+    const stopped = {...active, end: now};
+
+    expect(
+      sumLiveEntryDurations([completed, stopped], {
+        now: new Date('2026-03-18T13:00:00Z'),
+        projectId: 1,
+        date: '2026-03-18',
+      }),
+    ).toBe(3 * 3600);
+  });
+});
 
 describe('Timezone utilities', () => {
   const originalTimezone = process.env.TIMEZONE;
