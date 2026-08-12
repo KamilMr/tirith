@@ -3,7 +3,7 @@ import {Text, Box} from 'ink';
 import {useNavigation} from '../contexts/NavigationContext.js';
 import {useData} from '../contexts/DataContext.js';
 import {useComponentKeys} from '../hooks/useComponentKeys.js';
-import {usePolling} from '../hooks/hooks.js';
+import useLiveClientMetrics from '../hooks/useLiveClientMetrics.js';
 import {BORDER_COLOR_DEFAULT, BORDER_COLOR_FOCUSED, CLIENT} from '../consts.js';
 import BasicTextInput from './BasicTextInput.js';
 import DelayedDisappear from './DelayedDisappear.js';
@@ -12,9 +12,10 @@ import Frame from './Frame.js';
 import ScrollBox from './ScrollBox.js';
 import EditForm from './EditForm.js';
 import clientService from '../services/clientService.js';
-import pricingService from '../services/pricingService.js';
 import ProgressBar from './ProgressBar.js';
 import {formatProgressBarText} from './progressBarLayout.js';
+import {formatDecimalHoursToHHmm} from '../utils.js';
+import {getViewDateRange} from './viewRange.js';
 
 const Client = ({height}) => {
   const {isClientFocused, getBorderTitle, mode} = useNavigation();
@@ -26,13 +27,14 @@ const Client = ({height}) => {
   const [isCreating, setIsAdding] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [monthlyData] = usePolling(
-    () =>
-      selectedClientId
-        ? pricingService.getClientMonthlyTarget(selectedClientId)
-        : null,
-    [selectedClientId, reload],
-  );
+  const currentMonth = getViewDateRange('monthly', new Date());
+  const {metrics: monthlyData} = useLiveClientMetrics({
+    clientId: selectedClientId,
+    rangeType: 'monthly',
+    startDate: currentMonth.startDate,
+    endDate: currentMonth.endDate,
+    reload,
+  });
 
   useEffect(() => {
     const loadClients = async () => {
@@ -260,15 +262,20 @@ const Client = ({height}) => {
                   <Text>
                     {'  '}
                     <ProgressBar
-                      workedHours={monthlyData.workedHours}
-                      targetHours={monthlyData.targetHours}
-                      remainingHours={monthlyData.remainingHours}
-                      hoursPerWorkDay={monthlyData.hoursPerWorkDay}
-                      hoursPerWorkDayRaw={monthlyData.hoursPerWorkDayRaw}
-                      overflowHours={monthlyData.overflowHours}
+                      workedHours={monthlyData.worked}
+                      targetHours={monthlyData.target}
+                      remainingHours={Math.max(
+                        0,
+                        monthlyData.target - monthlyData.worked,
+                      )}
+                      hoursPerWorkDay={formatDecimalHoursToHHmm(
+                        monthlyData.catchup,
+                      )}
+                      hoursPerWorkDayRaw={monthlyData.catchup}
+                      overflowHours="00:00"
                       text={formatProgressBarText(
-                        monthlyData.workedHours,
-                        monthlyData.targetHours,
+                        monthlyData.worked,
+                        monthlyData.target,
                       )}
                     />
                   </Text>

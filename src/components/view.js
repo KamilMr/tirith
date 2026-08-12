@@ -11,12 +11,12 @@ import taskService from '../services/taskService.js';
 import clientService from '../services/clientService.js';
 import timeEntryModel from '../models/timeEntry.js';
 import {useComponentKeys} from '../hooks/useComponentKeys.js';
-import {usePolling} from '../hooks/hooks.js';
 import useScrollableList from '../hooks/useScrollableList.js';
 import useTaskAnalytics from '../hooks/useTaskAnalytics.js';
 import usePricing from '../hooks/usePricing.js';
 import useTotalEarnings from '../hooks/useTotalEarnings.js';
 import useEditorBuffer from '../hooks/useEditorBuffer.js';
+import useLiveClientMetrics from '../hooks/useLiveClientMetrics.js';
 import {findTimeEntryOverlaps} from '../services/timeEntryOverlap.js';
 import {formatTimeEntryOverlapSummary} from '../services/timeEntryOverlapSummary.js';
 import {
@@ -29,7 +29,6 @@ import RangeSelector from './RangeSelector.js';
 import PeriodNavigator from './PeriodNavigator.js';
 import Earnings from './Earnings.js';
 import WorkTargets from './WorkTargets.js';
-import pricingService from '../services/pricingService.js';
 import SelectableList from './SelectableList.js';
 import {
   formatTime,
@@ -80,30 +79,20 @@ const View = ({height}) => {
   const selectedRange = VIEW_RANGE_OPTIONS[selectedRangeIndex];
   const currentRange = getViewDateRange(selectedRange.type, rangeAnchor);
   const periodLabel = formatViewPeriod(selectedRange.type, rangeAnchor);
-  const [workBreakdown] = usePolling(
-    () =>
-      selectedClientId
-        ? pricingService.getClientWorkBreakdown(
-            selectedClientId,
-            selectedRange.type,
-            currentRange.startDate,
-            currentRange.endDate,
-          )
-        : null,
-    [
-      selectedClientId,
-      selectedRange.type,
-      currentRange.startDate,
-      currentRange.endDate,
+  const {metrics: clientMetrics, loading: clientMetricsLoading} =
+    useLiveClientMetrics({
+      clientId: selectedClientId,
+      rangeType: selectedRange.type,
+      startDate: currentRange.startDate,
+      endDate: currentRange.endDate,
       reload,
-    ],
-  );
-  const currentWorkBreakdown =
-    workBreakdown?.clientId === selectedClientId &&
-    workBreakdown?.rangeType === selectedRange.type &&
-    workBreakdown?.startDate === currentRange.startDate &&
-    workBreakdown?.endDate === currentRange.endDate
-      ? workBreakdown
+    });
+  const currentClientMetrics =
+    clientMetrics?.clientId === selectedClientId &&
+    clientMetrics?.rangeType === selectedRange.type &&
+    clientMetrics?.startDate === currentRange.startDate &&
+    clientMetrics?.endDate === currentRange.endDate
+      ? clientMetrics
       : null;
 
   useEffect(() => {
@@ -140,15 +129,6 @@ const View = ({height}) => {
     currentRange.endDate,
     reload,
   );
-  const {pricing: clientPricing, loading: clientPricingLoading} = usePricing(
-    null,
-    null,
-    selectedClientId,
-    currentRange.startDate,
-    currentRange.endDate,
-    reload,
-  );
-
   useEffect(() => {
     const loadInitialData = async () => {
       const [clientData, projectData] = await Promise.all([
@@ -614,12 +594,15 @@ const View = ({height}) => {
             />
           </Box>
           <Box width={30} marginLeft={2}>
-            <Earnings pricing={clientPricing} loading={clientPricingLoading} />
+            <Earnings
+              pricing={currentClientMetrics}
+              loading={clientMetricsLoading && !currentClientMetrics}
+            />
           </Box>
           <Box width={30} marginLeft={2}>
             <WorkTargets
-              breakdown={currentWorkBreakdown}
-              loading={!currentWorkBreakdown && !!selectedClientId}
+              breakdown={currentClientMetrics}
+              loading={clientMetricsLoading && !currentClientMetrics}
               rangeLabel={selectedRange.label}
             />
           </Box>

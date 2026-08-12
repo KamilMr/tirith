@@ -33,6 +33,15 @@ const Earnings = ({pricing, loading}) => {
         </Text>
       ),
     },
+    ...(pricing.expectedEarnings !== undefined &&
+    pricing.expectedEarnings !== null
+      ? [
+          {
+            key: 'At target',
+            value: formatCurrency(pricing.expectedEarnings, pricing.currency),
+          },
+        ]
+      : []),
   ];
 
   return (
