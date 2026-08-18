@@ -10,6 +10,7 @@ import {
   useNavigation,
 } from './contexts/NavigationContext.js';
 import {DataProvider} from './contexts/DataContext.js';
+import {LiveClockProvider} from './contexts/LiveClockContext.js';
 import useTerminalSize from './hooks/useTerminalSize.js';
 import {getAppHeights, getSidebarHeights} from './layout/sidebarLayout.js';
 import pkg from '../package.json' with {type: 'json'};
@@ -46,11 +47,13 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <DataProvider>
-    <NavigationProvider>
-      <AppContent />
-    </NavigationProvider>
-  </DataProvider>
+  <LiveClockProvider>
+    <DataProvider>
+      <NavigationProvider>
+        <AppContent />
+      </NavigationProvider>
+    </DataProvider>
+  </LiveClockProvider>
 );
 
 export default App;

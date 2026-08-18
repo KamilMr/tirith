@@ -1,17 +1,26 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useRef, useSyncExternalStore} from 'react';
+import {useLiveClock} from '../contexts/LiveClockContext.js';
 
 const useLiveNow = isRunning => {
-  const [now, setNow] = useState(() => new Date());
+  const clock = useLiveClock();
+  const idleNow = useRef(new Date());
+  const wasRunning = useRef(isRunning);
 
-  useEffect(() => {
-    setNow(new Date());
-    if (!isRunning) return undefined;
+  if (wasRunning.current !== isRunning) {
+    wasRunning.current = isRunning;
+    if (!isRunning) idleNow.current = new Date();
+  }
 
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, [isRunning]);
+  const subscribe = useCallback(
+    listener => (isRunning ? clock.subscribe(listener) : () => {}),
+    [clock, isRunning],
+  );
+  const getSnapshot = useCallback(
+    () => (isRunning ? clock.getSnapshot() : idleNow.current),
+    [clock, isRunning],
+  );
 
-  return now;
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 };
 
 export default useLiveNow;
