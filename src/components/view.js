@@ -5,7 +5,6 @@ import {useData} from '../contexts/DataContext.js';
 import {BORDER_COLOR_DEFAULT, BORDER_COLOR_FOCUSED, VIEW} from '../consts.js';
 import Frame from './Frame.js';
 import HelpBottom from './HelpBottom.js';
-import ScrollBox from './ScrollBox.js';
 import projectService from '../services/projectService.js';
 import taskService from '../services/taskService.js';
 import clientService from '../services/clientService.js';
@@ -18,8 +17,6 @@ import useEditorBuffer from '../hooks/useEditorBuffer.js';
 import useLiveClientMetrics from '../hooks/useLiveClientMetrics.js';
 import useLiveNow from '../hooks/useLiveNow.js';
 import usePeriodSummary from '../hooks/usePeriodSummary.js';
-import {findTimeEntryOverlaps} from '../services/timeEntryOverlap.js';
-import {formatTimeEntryOverlapSummary} from '../services/timeEntryOverlapSummary.js';
 import {
   moveTimeEntryByMinutes,
   resizeTimeEntryEndByMinutes,
@@ -32,8 +29,8 @@ import Earnings from './Earnings.js';
 import WorkTargets from './WorkTargets.js';
 import PeriodSummary from './PeriodSummary.js';
 import SelectableList from './SelectableList.js';
+import TaskTimeEntries from './TaskTimeEntries.js';
 import {
-  formatTime,
   formatCurrency,
   formatEstimation,
   formatLiveDuration,
@@ -42,7 +39,6 @@ import {
   formatRelativeTime,
   formatHour,
 } from '../utils.js';
-import {format} from 'date-fns';
 import {calculateEstimatedPrice} from '../services/pricingService.js';
 import {
   VIEW_RANGE_OPTIONS,
@@ -365,13 +361,6 @@ const View = ({height}) => {
         formatCurrency(price, taskPricing.currency)
       );
     };
-    const selectedEntry = timeEntries[selectedEntryIndex];
-    const entryBeingChecked = draftEntry || selectedEntry;
-    const entryOverlaps = entryBeingChecked?.end
-      ? findTimeEntryOverlaps(entryBeingChecked, timeEntries)
-      : [];
-    const shouldShowOverlapInfo = draftEntry || entryOverlaps.length > 0;
-
     return (
       <Box flexDirection="column">
         <Box flexDirection="row" marginBottom={1}>
@@ -473,121 +462,14 @@ const View = ({height}) => {
           </Box>
         </Box>
 
-        <Text color="cyan" bold>
-          Time Entries ({timeEntries.length}):
-        </Text>
-        {timeEntries.length === 0 ? (
-          <Text dimColor marginLeft={2}>
-            No time entries
-          </Text>
-        ) : (
-          <Box flexDirection="column" marginTop={1}>
-            <Box gap={1}>
-              <Box width={2} />
-              <Box width={16}>
-                <Text bold dimColor>
-                  Task
-                </Text>
-              </Box>
-              <Box width={19}>
-                <Text bold dimColor>
-                  Start
-                </Text>
-              </Box>
-              <Box width={19}>
-                <Text bold dimColor>
-                  End
-                </Text>
-              </Box>
-              <Box width={20}>
-                <Text bold dimColor>
-                  Duration
-                </Text>
-              </Box>
-              <Text bold dimColor>
-                Overlap
-              </Text>
-            </Box>
-
-            <ScrollBox
-              height={Math.max(5, height - 30)}
-              selectedIndex={selectedEntryIndex}
-            >
-              {timeEntries.map((entry, index) => {
-                const isCursor = index === selectedEntryIndex && isViewFocused;
-                const isSelectedTask = entry.task_id === selectedTaskId;
-                const isDraftRow = draftEntry?.id === entry.id;
-                const displayEntry = isDraftRow ? draftEntry : entry;
-                const color = isDraftRow
-                  ? 'yellow'
-                  : isCursor
-                    ? 'green'
-                    : isSelectedTask
-                      ? '#E8A030'
-                      : 'white';
-                const duration = calculateDuration(
-                  displayEntry.start,
-                  displayEntry.end || taskNow,
-                );
-                const rowOverlaps = displayEntry.end
-                  ? findTimeEntryOverlaps(displayEntry, timeEntries)
-                  : [];
-                const overlapSummary = formatTimeEntryOverlapSummary(
-                  rowOverlaps,
-                  displayEntry,
-                );
-                const taskName = (entry.title || '').slice(0, 16);
-
-                return (
-                  <Box key={entry.id} gap={1}>
-                    <Text color={color}>{isCursor ? '• ' : '  '}</Text>
-                    <Box width={16}>
-                      <Text color={color}>{taskName}</Text>
-                    </Box>
-                    <Box width={19}>
-                      <Text color={color}>
-                        {format(displayEntry.start, 'yyyy-MM-dd HH:mm:ss')}
-                      </Text>
-                    </Box>
-                    <Box width={19}>
-                      <Text color={color}>
-                        {displayEntry.end ? (
-                          format(displayEntry.end, 'yyyy-MM-dd HH:mm:ss')
-                        ) : (
-                          <Text color="yellow">Running...</Text>
-                        )}
-                      </Text>
-                    </Box>
-                    <Box width={20}>
-                      <Text color={color}>
-                        {duration > 0 ? formatTime(duration) : '-'}
-                        {isDraftRow ? ' [draft]' : ''}
-                      </Text>
-                    </Box>
-                    <Text color={rowOverlaps.length > 0 ? 'red' : color}>
-                      {overlapSummary ? overlapSummary.slice(0, 40) : '-'}
-                    </Text>
-                  </Box>
-                );
-              })}
-            </ScrollBox>
-
-            {shouldShowOverlapInfo && (
-              <Box flexDirection="column" marginTop={1}>
-                <Text color={entryOverlaps.length > 0 ? 'red' : 'green'}>
-                  {entryOverlaps.length > 0
-                    ? `${draftEntry ? '⚠ Draft overlaps' : '⚠ Selected entry overlaps'} ${entryOverlaps.length} entr${entryOverlaps.length === 1 ? 'y' : 'ies'}`
-                    : '✓ No overlaps'}
-                </Text>
-                {entryOverlaps.slice(0, 3).map(overlap => (
-                  <Text key={overlap.entry.id} color="red">
-                    {`  - ${(overlap.entry.title || 'Entry').slice(0, 16)} ${format(overlap.entry.start, 'HH:mm')}-${format(overlap.entry.end, 'HH:mm')} by ${formatTime(overlap.overlapSeconds)}`}
-                  </Text>
-                ))}
-              </Box>
-            )}
-          </Box>
-        )}
+        <TaskTimeEntries
+          height={height}
+          timeEntries={timeEntries}
+          selectedEntryIndex={selectedEntryIndex}
+          isViewFocused={isViewFocused}
+          selectedTaskId={selectedTaskId}
+          draftEntry={draftEntry}
+        />
       </Box>
     );
   };
