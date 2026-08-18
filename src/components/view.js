@@ -14,6 +14,7 @@ import {useComponentKeys} from '../hooks/useComponentKeys.js';
 import useScrollableList from '../hooks/useScrollableList.js';
 import useTaskAnalytics from '../hooks/useTaskAnalytics.js';
 import usePricing from '../hooks/usePricing.js';
+import useTotalEarnings from '../hooks/useTotalEarnings.js';
 import useEditorBuffer from '../hooks/useEditorBuffer.js';
 import useLiveClientMetrics from '../hooks/useLiveClientMetrics.js';
 import useLiveNow from '../hooks/useLiveNow.js';
@@ -135,6 +136,13 @@ const View = ({height}) => {
     currentRange.endDate,
     reload,
   );
+  const {pricing: totalPricing, loading: totalPricingLoading} =
+    useTotalEarnings(
+      currentRange.startDate,
+      currentRange.endDate,
+      reload,
+      taskClient,
+    );
   const {pricing: projectPricing, loading: projectPricingLoading} = usePricing(
     null,
     selectedProjectId,
@@ -465,7 +473,7 @@ const View = ({height}) => {
           </Box>
 
           <Box width={25} marginLeft={2}>
-            <Earnings pricing={taskPricing} loading={taskPricingLoading} />
+            <Earnings pricing={totalPricing} loading={totalPricingLoading} />
           </Box>
         </Box>
 
