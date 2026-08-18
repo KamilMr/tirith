@@ -14,9 +14,6 @@ import useScrollableList from '../hooks/useScrollableList.js';
 import useTaskAnalytics from '../hooks/useTaskAnalytics.js';
 import usePricing from '../hooks/usePricing.js';
 import useEditorBuffer from '../hooks/useEditorBuffer.js';
-import useLiveClientMetrics from '../hooks/useLiveClientMetrics.js';
-import useLiveNow from '../hooks/useLiveNow.js';
-import usePeriodSummary from '../hooks/usePeriodSummary.js';
 import {
   moveTimeEntryByMinutes,
   resizeTimeEntryEndByMinutes,
@@ -26,20 +23,16 @@ import KeyValue from './KeyValue.js';
 import RangeSelector from './RangeSelector.js';
 import PeriodNavigator from './PeriodNavigator.js';
 import Earnings from './Earnings.js';
-import WorkTargets from './WorkTargets.js';
-import PeriodSummary from './PeriodSummary.js';
 import SelectableList from './SelectableList.js';
 import TaskTimeEntries from './TaskTimeEntries.js';
 import {
-  formatCurrency,
-  formatEstimation,
-  formatLiveDuration,
-  sumEntryDurations,
-  calculateDuration,
-  formatRelativeTime,
-  formatHour,
-} from '../utils.js';
-import {calculateEstimatedPrice} from '../services/pricingService.js';
+  LiveClientDetails,
+  LiveClientEarnings,
+  LivePeriodSummary,
+  LiveTaskDuration,
+  LiveTaskPricing,
+} from './ViewLiveMetrics.js';
+import {formatEstimation, formatRelativeTime, formatHour} from '../utils.js';
 import {
   VIEW_RANGE_OPTIONS,
   formatViewPeriod,
@@ -79,28 +72,6 @@ const View = ({height}) => {
   const selectedRange = VIEW_RANGE_OPTIONS[selectedRangeIndex];
   const currentRange = getViewDateRange(selectedRange.type, rangeAnchor);
   const periodLabel = formatViewPeriod(selectedRange.type, rangeAnchor);
-  const {metrics: clientMetrics, loading: clientMetricsLoading} =
-    useLiveClientMetrics({
-      clientId: selectedClientId,
-      rangeType: selectedRange.type,
-      startDate: currentRange.startDate,
-      endDate: currentRange.endDate,
-      reload,
-    });
-  const currentClientMetrics =
-    clientMetrics?.clientId === selectedClientId &&
-    clientMetrics?.rangeType === selectedRange.type &&
-    clientMetrics?.startDate === currentRange.startDate &&
-    clientMetrics?.endDate === currentRange.endDate
-      ? clientMetrics
-      : null;
-  const {summary: periodSummary, loading: periodSummaryLoading} =
-    usePeriodSummary({
-      rangeType: selectedRange.type,
-      startDate: currentRange.startDate,
-      endDate: currentRange.endDate,
-      reload,
-    });
 
   useEffect(() => {
     if (isClientFocused) setLastSection('client');
@@ -110,8 +81,6 @@ const View = ({height}) => {
 
   const taskProject = allProjects.find(p => p.id === taskDetails?.project_id);
   const taskClient = clients.find(c => c.id === taskProject?.client_id);
-  const hasActiveTimeEntry = timeEntries.some(entry => !entry.end);
-  const taskNow = useLiveNow(hasActiveTimeEntry);
 
   const {
     selectedIndex: selectedEntryIndex,
@@ -122,14 +91,6 @@ const View = ({height}) => {
     selectedTaskId,
     currentRange.startDate,
     currentRange.endDate,
-  );
-  const {pricing: taskPricing, loading: taskPricingLoading} = usePricing(
-    selectedTaskId,
-    null,
-    null,
-    currentRange.startDate,
-    currentRange.endDate,
-    reload,
   );
   const {pricing: projectPricing, loading: projectPricingLoading} = usePricing(
     null,
@@ -334,33 +295,7 @@ const View = ({height}) => {
     const selectedTaskEntries = timeEntries.filter(
       e => e.task_id === selectedTaskId,
     );
-    const completedSeconds = sumEntryDurations(selectedTaskEntries);
-    const activeSeconds = selectedTaskEntries.reduce(
-      (total, entry) =>
-        entry.start && !entry.end
-          ? total + Math.max(0, calculateDuration(entry.start, taskNow))
-          : total,
-      0,
-    );
-    const totalSeconds = completedSeconds + activeSeconds;
     const activeEntries = selectedTaskEntries.filter(e => !e.end).length;
-    const estimatedSec = taskDetails.estimated_minutes
-      ? taskDetails.estimated_minutes * 60
-      : null;
-    const isOvertime = estimatedSec && totalSeconds > estimatedSec;
-    const estimatedPrice = calculateEstimatedPrice(
-      taskDetails.estimated_minutes,
-      taskPricing?.hourlyRate,
-    );
-    const renderPrice = price => {
-      if (taskPricingLoading && !taskPricing)
-        return <Text dimColor>Loading...</Text>;
-      return price === null || price === undefined ? (
-        <Text dimColor>None</Text>
-      ) : (
-        formatCurrency(price, taskPricing.currency)
-      );
-    };
     return (
       <Box flexDirection="column">
         <Box flexDirection="row" marginBottom={1}>
@@ -389,20 +324,21 @@ const View = ({height}) => {
                 {
                   key: 'Total',
                   value: (
-                    <Text color={isOvertime ? 'red' : undefined}>
-                      {formatLiveDuration(totalSeconds, activeSeconds)}
-                    </Text>
+                    <LiveTaskDuration
+                      timeEntries={timeEntries}
+                      taskId={selectedTaskId}
+                      estimatedMinutes={taskDetails.estimated_minutes}
+                    />
                   ),
                 },
-                {
-                  key: 'Estimated Price',
-                  value: renderPrice(estimatedPrice),
-                },
-                {
-                  key: 'Current Price',
-                  value: renderPrice(taskPricing?.earnings),
-                },
               ]}
+            />
+            <LiveTaskPricing
+              taskId={selectedTaskId}
+              estimatedMinutes={taskDetails.estimated_minutes}
+              startDate={currentRange.startDate}
+              endDate={currentRange.endDate}
+              reload={reload}
             />
           </Box>
 
@@ -454,10 +390,12 @@ const View = ({height}) => {
           </Box>
 
           <Box width={25} marginLeft={2}>
-            <Earnings
-              pricing={currentClientMetrics}
-              loading={clientMetricsLoading && !currentClientMetrics}
-              showExpectedEarnings={false}
+            <LiveClientEarnings
+              clientId={selectedClientId}
+              rangeType={selectedRange.type}
+              startDate={currentRange.startDate}
+              endDate={currentRange.endDate}
+              reload={reload}
             />
           </Box>
         </Box>
@@ -516,28 +454,25 @@ const View = ({height}) => {
               items={[{key: 'Name', value: client.name}]}
             />
           </Box>
-          <Box width={30} marginLeft={2}>
-            <Earnings
-              pricing={currentClientMetrics}
-              loading={clientMetricsLoading && !currentClientMetrics}
-            />
-          </Box>
-          <Box width={30} marginLeft={2}>
-            <WorkTargets
-              breakdown={currentClientMetrics}
-              loading={clientMetricsLoading && !currentClientMetrics}
-              rangeLabel={selectedRange.label}
-            />
-          </Box>
+          <LiveClientDetails
+            clientId={selectedClientId}
+            rangeType={selectedRange.type}
+            startDate={currentRange.startDate}
+            endDate={currentRange.endDate}
+            reload={reload}
+            rangeLabel={selectedRange.label}
+          />
         </Box>
       </Box>
     );
   };
 
   const renderDashboard = () => (
-    <PeriodSummary
-      summary={periodSummary}
-      loading={periodSummaryLoading}
+    <LivePeriodSummary
+      rangeType={selectedRange.type}
+      startDate={currentRange.startDate}
+      endDate={currentRange.endDate}
+      reload={reload}
       rangeLabel={selectedRange.label}
     />
   );

@@ -1,27 +1,6 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
-const harness = vi.hoisted(() => ({
-  stateIndex: 0,
-  taskPricing: {
-    taskId: 3,
-    hourlyRate: 115,
-    earnings: 10,
-    currency: 'PLN',
-    dateRangeDays: 1,
-  },
-  liveClientPricing: {
-    clientId: 1,
-    rangeType: 'daily',
-    startDate: '2026-08-18',
-    endDate: '2026-08-18',
-    earnings: 81.5,
-    currency: 'PLN',
-    dateRangeDays: 1,
-    projectCount: 1,
-    taskCount: 1,
-    expectedEarnings: 920,
-  },
-}));
+const harness = vi.hoisted(() => ({stateIndex: 0}));
 
 vi.mock('react', async importOriginal => {
   const react = await importOriginal();
@@ -86,22 +65,28 @@ vi.mock('../hooks/useTaskAnalytics.js', () => ({
   default: () => ({analytics: null, loading: false}),
 }));
 vi.mock('../hooks/usePricing.js', () => ({
-  default: taskId => ({
-    pricing: taskId ? harness.taskPricing : null,
-    loading: false,
-  }),
+  default: taskId => {
+    if (taskId) throw new Error('View must not consume live task pricing');
+    return {pricing: null, loading: false};
+  },
 }));
 vi.mock('../hooks/useEditorBuffer.js', () => ({
   default: () => ({openEditor: vi.fn()}),
 }));
 vi.mock('../hooks/useLiveClientMetrics.js', () => ({
-  default: () => ({metrics: harness.liveClientPricing, loading: false}),
+  default: () => {
+    throw new Error('View must not consume live client metrics');
+  },
 }));
 vi.mock('../hooks/useLiveNow.js', () => ({
-  default: () => new Date('2026-08-18T10:00:00'),
+  default: () => {
+    throw new Error('View must not consume the live clock');
+  },
 }));
 vi.mock('../hooks/usePeriodSummary.js', () => ({
-  default: () => ({summary: null, loading: false}),
+  default: () => {
+    throw new Error('View must not consume live period summaries');
+  },
 }));
 
 vi.mock('./Earnings.js', () => ({
@@ -114,9 +99,25 @@ vi.mock('./KeyValue.js', () => ({
     return null;
   },
 }));
+vi.mock('./ViewLiveMetrics.js', () => ({
+  LiveTaskDuration: function LiveTaskDurationProbe() {
+    return null;
+  },
+  LiveTaskPricing: function LiveTaskPricingProbe() {
+    return null;
+  },
+  LiveClientEarnings: function LiveClientEarningsProbe() {
+    return null;
+  },
+  LiveClientDetails: function LiveClientDetailsProbe() {
+    return null;
+  },
+  LivePeriodSummary: function LivePeriodSummaryProbe() {
+    return null;
+  },
+}));
 
-import Earnings from './Earnings.js';
-import KeyValue from './KeyValue.js';
+import {LiveClientEarnings, LiveTaskPricing} from './ViewLiveMetrics.js';
 import View from './view.js';
 
 const findElement = (node, predicate) => {
@@ -132,26 +133,33 @@ const findElement = (node, predicate) => {
   return null;
 };
 
-describe('task detail pricing', () => {
+describe('View live metric isolation', () => {
   beforeEach(() => {
     harness.stateIndex = 0;
   });
 
-  it('keeps current price task-scoped and shows live client earnings for the selected day', () => {
+  it('delegates task and client prices to live leaf components', () => {
     const view = View({height: 40});
 
-    const taskDetails = findElement(
+    const taskPricing = findElement(
       view,
-      element =>
-        element.type === KeyValue && element.props.label === 'Task Details:',
+      element => element.type === LiveTaskPricing,
     );
-    const currentPrice = taskDetails.props.items.find(
-      item => item.key === 'Current Price',
+    const clientEarnings = findElement(
+      view,
+      element => element.type === LiveClientEarnings,
     );
-    const earnings = findElement(view, element => element.type === Earnings);
 
-    expect(currentPrice.value).toBe('10 PLN');
-    expect(earnings.props.pricing).toBe(harness.liveClientPricing);
-    expect(earnings.props.showExpectedEarnings).toBe(false);
+    expect(taskPricing.props).toMatchObject({
+      taskId: 3,
+      startDate: '2026-08-18',
+      endDate: '2026-08-18',
+    });
+    expect(clientEarnings.props).toMatchObject({
+      clientId: 1,
+      rangeType: 'daily',
+      startDate: '2026-08-18',
+      endDate: '2026-08-18',
+    });
   });
 });
