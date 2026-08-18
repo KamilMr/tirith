@@ -1,9 +1,9 @@
 import React from 'react';
 import {Text} from 'ink';
 import KeyValue from './KeyValue.js';
-import {formatCurrency, formatHourlyRate} from '../utils.js';
+import {formatCurrency} from '../utils.js';
 
-const Earnings = ({pricing, loading}) => {
+const Earnings = ({pricing, loading, showExpectedEarnings = true}) => {
   if (loading) return <Text dimColor>Loading...</Text>;
   if (!pricing) return null;
   if (!pricing.hourlyRate)
@@ -15,10 +15,6 @@ const Earnings = ({pricing, loading}) => {
     );
 
   const items = [
-    {
-      key: 'Rate',
-      value: formatHourlyRate(pricing.hourlyRate, pricing.currency),
-    },
     ...(pricing.projectCount !== undefined
       ? [{key: 'Projects', value: pricing.projectCount}]
       : []),
@@ -33,7 +29,8 @@ const Earnings = ({pricing, loading}) => {
         </Text>
       ),
     },
-    ...(pricing.expectedEarnings !== undefined &&
+    ...(showExpectedEarnings &&
+    pricing.expectedEarnings !== undefined &&
     pricing.expectedEarnings !== null
       ? [
           {

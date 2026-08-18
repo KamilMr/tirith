@@ -9,13 +9,17 @@ const harness = vi.hoisted(() => ({
     currency: 'PLN',
     dateRangeDays: 1,
   },
-  clientPricing: {
-    hourlyRate: 115,
-    earnings: 80,
+  liveClientPricing: {
+    clientId: 1,
+    rangeType: 'daily',
+    startDate: '2026-08-18',
+    endDate: '2026-08-18',
+    earnings: 81.5,
     currency: 'PLN',
     dateRangeDays: 1,
-    projectCount: 2,
-    taskCount: 4,
+    projectCount: 1,
+    taskCount: 1,
+    expectedEarnings: 920,
   },
 }));
 
@@ -87,14 +91,11 @@ vi.mock('../hooks/usePricing.js', () => ({
     loading: false,
   }),
 }));
-vi.mock('../hooks/useTotalEarnings.js', () => ({
-  default: () => ({pricing: harness.clientPricing, loading: false}),
-}));
 vi.mock('../hooks/useEditorBuffer.js', () => ({
   default: () => ({openEditor: vi.fn()}),
 }));
 vi.mock('../hooks/useLiveClientMetrics.js', () => ({
-  default: () => ({metrics: null, loading: false}),
+  default: () => ({metrics: harness.liveClientPricing, loading: false}),
 }));
 vi.mock('../hooks/useLiveNow.js', () => ({
   default: () => new Date('2026-08-18T10:00:00'),
@@ -136,7 +137,7 @@ describe('task detail pricing', () => {
     harness.stateIndex = 0;
   });
 
-  it('keeps current price task-scoped and shows client earnings for the selected day', () => {
+  it('keeps current price task-scoped and shows live client earnings for the selected day', () => {
     const view = View({height: 40});
 
     const taskDetails = findElement(
@@ -150,6 +151,7 @@ describe('task detail pricing', () => {
     const earnings = findElement(view, element => element.type === Earnings);
 
     expect(currentPrice.value).toBe('10 PLN');
-    expect(earnings.props.pricing).toBe(harness.clientPricing);
+    expect(earnings.props.pricing).toBe(harness.liveClientPricing);
+    expect(earnings.props.showExpectedEarnings).toBe(false);
   });
 });

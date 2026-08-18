@@ -164,6 +164,27 @@ describe('computeLiveClientMetrics', () => {
     expect(result.earnings).toBe(1840);
   });
 
+  it('counts only unique projects and tasks that generated earnings', () => {
+    const result = computeLiveClientMetrics(
+      {
+        ...snapshot,
+        projectCount: 8,
+        taskCount: 20,
+        completedProjectIds: [21, 21],
+        completedTaskIds: [11, 11],
+        activeEntry: {
+          ...snapshot.activeEntry,
+          projectId: 21,
+          taskId: 12,
+        },
+      },
+      now,
+    );
+
+    expect(result.projectCount).toBe(1);
+    expect(result.taskCount).toBe(2);
+  });
+
   it('calculates expected monthly earnings for a 200-hour target', () => {
     const result = computeLiveClientMetrics(
       {
@@ -234,8 +255,12 @@ describe('computeLiveClientMetrics', () => {
     const result = computeLiveClientMetrics(
       {
         ...snapshot,
+        completedProjectIds: [21],
+        completedTaskIds: [11],
         activeEntry: {
           ...snapshot.activeEntry,
+          projectId: 22,
+          taskId: 12,
           start: new Date('2026-03-15T23:00:00Z'),
         },
       },
@@ -244,6 +269,8 @@ describe('computeLiveClientMetrics', () => {
 
     expect(result.totalSeconds).toBe(h(16));
     expect(result.earnings).toBe(1600);
+    expect(result.projectCount).toBe(1);
+    expect(result.taskCount).toBe(1);
   });
 
   it("uses the active entry's local timezone when checking the range", () => {

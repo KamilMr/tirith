@@ -40,6 +40,8 @@ const calculateEntriesEarnings = (entries, rates) => {
   let totalSeconds = 0;
   let totalEarnings = 0;
   let currency = 'PLN';
+  const projectIds = new Set();
+  const taskIds = new Set();
 
   for (const entry of entries) {
     if (!entry.end) continue; // Skip active entries
@@ -50,12 +52,23 @@ const calculateEntriesEarnings = (entries, rates) => {
     const rate = findRateForDate(rates, entry.start);
     if (rate) {
       const hours = duration / 3600;
-      totalEarnings += hours * rate.hourly_rate;
+      const entryEarnings = hours * rate.hourly_rate;
+      totalEarnings += entryEarnings;
       currency = rate.currency || 'PLN';
+      if (entryEarnings > 0) {
+        if (entry.project_id !== undefined) projectIds.add(entry.project_id);
+        if (entry.task_id !== undefined) taskIds.add(entry.task_id);
+      }
     }
   }
 
-  return {totalSeconds, totalEarnings, currency};
+  return {
+    totalSeconds,
+    totalEarnings,
+    currency,
+    projectIds: [...projectIds],
+    taskIds: [...taskIds],
+  };
 };
 
 const getMonthDateRange = () => {
@@ -225,6 +238,20 @@ export const computeLiveClientMetrics = (snapshot, now = new Date()) => {
       ? (activeSeconds / 3600) * snapshot.activeEntry.hourlyRate
       : 0;
   const earnings = hasRate ? snapshot.completedEarnings + activeEarnings : null;
+  const projectIds = new Set(snapshot.completedProjectIds || []);
+  const taskIds = new Set(snapshot.completedTaskIds || []);
+  if (activeEarnings > 0) {
+    if (snapshot.activeEntry.projectId !== undefined)
+      projectIds.add(snapshot.activeEntry.projectId);
+    if (snapshot.activeEntry.taskId !== undefined)
+      taskIds.add(snapshot.activeEntry.taskId);
+  }
+  const projectCount = snapshot.completedProjectIds
+    ? projectIds.size
+    : snapshot.projectCount;
+  const taskCount = snapshot.completedTaskIds
+    ? taskIds.size
+    : snapshot.taskCount;
   const remainingTargetHours = Math.max(
     0,
     workTarget.target - workTarget.worked,
@@ -241,8 +268,8 @@ export const computeLiveClientMetrics = (snapshot, now = new Date()) => {
     hourlyRate: snapshot.hourlyRate,
     currency: snapshot.currency,
     dateRangeDays: snapshot.dateRangeDays,
-    projectCount: snapshot.projectCount,
-    taskCount: snapshot.taskCount,
+    projectCount,
+    taskCount,
     totalSeconds,
     hours: totalSeconds / 3600,
     earnings,
@@ -536,19 +563,16 @@ const pricingService = {
   },
 
   getClientMetricSnapshot: async (clientId, rangeType, startDate, endDate) => {
-    const [client, rates, currentRate, entries, projects, tasks] =
-      await Promise.all([
-        clientModel.selectById(clientId),
-        clientRateHistory.getRatesInRange(clientId, startDate, endDate),
-        clientRateHistory.getCurrentRate(clientId),
-        timeEntryModel.selectByDateRangeWithTask({
-          startDate,
-          endDate,
-          clientId,
-        }),
-        projectModel.selectByCliId(clientId),
-        taskModel.selectByClientId(clientId),
-      ]);
+    const [client, rates, currentRate, entries] = await Promise.all([
+      clientModel.selectById(clientId),
+      clientRateHistory.getRatesInRange(clientId, startDate, endDate),
+      clientRateHistory.getCurrentRate(clientId),
+      timeEntryModel.selectByDateRangeWithTask({
+        startDate,
+        endDate,
+        clientId,
+      }),
+    ]);
     const completed = calculateEntriesEarnings(entries, rates);
     const activeEntry = entries.find(entry => !entry.end);
     const activeRate = activeEntry
@@ -564,9 +588,13 @@ const pricingService = {
       dailyTarget: client?.daily_hours ? parseFloat(client.daily_hours) : null,
       completedSeconds: completed.totalSeconds,
       completedEarnings: completed.totalEarnings,
+      completedProjectIds: completed.projectIds,
+      completedTaskIds: completed.taskIds,
       activeEntry: activeEntry
         ? {
             clientId,
+            projectId: activeEntry.project_id,
+            taskId: activeEntry.task_id,
             start: activeEntry.start,
             hourlyRate: activeRate?.hourly_rate ?? null,
           }
@@ -575,8 +603,6 @@ const pricingService = {
       currency: currentRate?.currency || client?.currency || 'PLN',
       dateRangeDays:
         differenceInDays(parseISO(endDate), parseISO(startDate)) + 1,
-      projectCount: projects.length,
-      taskCount: tasks.length,
       fetchedAt: new Date(),
     };
   },
