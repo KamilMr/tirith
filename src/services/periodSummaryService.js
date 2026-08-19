@@ -1,9 +1,6 @@
 import clientModel from '../models/client.js';
 import projectModel from '../models/project.js';
-import pricingService, {
-  calculateEstimatedPrice,
-  computeLiveClientMetrics,
-} from './pricingService.js';
+import pricingService, {computeLiveClientMetrics} from './pricingService.js';
 import taskService from './taskService.js';
 import {retriveYYYYMMDD} from '../utils.js';
 
@@ -16,12 +13,10 @@ const addMoney = (totals, clientSummary) => {
   const current = totals.get(clientSummary.currency) || {
     currency: clientSummary.currency,
     earned: 0,
-    estimatedPrice: 0,
-    atTarget: 0,
+    shouldEarn: 0,
   };
   current.earned += clientSummary.earned;
-  current.estimatedPrice += clientSummary.estimatedPrice || 0;
-  current.atTarget += clientSummary.atTarget || 0;
+  current.shouldEarn += clientSummary.shouldEarn || 0;
   totals.set(clientSummary.currency, current);
 };
 
@@ -65,17 +60,13 @@ export const computePeriodSummary = (snapshot, now = new Date()) => {
       estimatedSeconds,
       remainingEstimatedSeconds: Math.max(0, estimatedSeconds - workedSeconds),
       earned: metrics?.earnings ?? null,
-      estimatedPrice: calculateEstimatedPrice(
-        estimatedSeconds / 60,
-        hourlyRate,
-      ),
-      atTarget: metrics?.expectedEarnings ?? null,
+      shouldEarn: metrics?.expectedEarnings ?? null,
       hourlyRate,
       currency: metrics?.currency || client.currency || 'PLN',
       taskCount: tasks.length,
       activeTaskCount: tasks.filter(task => task.isActive).length,
     };
-  });
+  }).filter(client => client.taskCount > 0);
 
   const moneyTotals = new Map();
   clientSummaries.forEach(client => addMoney(moneyTotals, client));
@@ -111,7 +102,7 @@ export const computePeriodSummary = (snapshot, now = new Date()) => {
       client => client.taskCount > 0 && client.hourlyRate === null,
     ),
     moneyTotals: [...moneyTotals.values()],
-    clients: clientSummaries.filter(client => client.taskCount > 0),
+    clients: clientSummaries,
   };
 };
 

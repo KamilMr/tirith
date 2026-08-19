@@ -34,7 +34,7 @@ const Earnings = ({pricing, loading, showExpectedEarnings = true}) => {
     pricing.expectedEarnings !== null
       ? [
           {
-            key: 'At target',
+            key: 'Should Earn',
             value: formatCurrency(pricing.expectedEarnings, pricing.currency),
           },
         ]

@@ -12,6 +12,17 @@ const pricing = {
 };
 
 describe('Earnings', () => {
+  it('labels expected period earnings as Should Earn', () => {
+    const view = Earnings({pricing, loading: false});
+
+    expect(view.props.items.map(item => item.key)).toEqual([
+      'Projects',
+      'Tasks',
+      'Earned',
+      'Should Earn',
+    ]);
+  });
+
   it('shows earning participant counts and the earned amount without the rate', () => {
     const view = Earnings({
       pricing,

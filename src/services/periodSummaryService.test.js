@@ -111,16 +111,58 @@ describe('computePeriodSummary', () => {
     expect(summary.activeDayCount).toBe(2);
   });
 
-  it('combines live earnings and estimated prices by currency', () => {
+  it('combines earned and should-earn values by currency', () => {
     const summary = computePeriodSummary(base, now);
 
     expect(summary.moneyTotals).toEqual([
       {
         currency: 'PLN',
         earned: 600,
-        estimatedPrice: 800,
-        atTarget: 7000,
+        shouldEarn: 7000,
       },
+    ]);
+  });
+
+  it('excludes clients without tracked time from period targets and earnings', () => {
+    const summary = computePeriodSummary(
+      {
+        ...base,
+        clients: [...base.clients, {id: 3, name: 'Idle'}],
+        metricSnapshots: [
+          ...base.metricSnapshots,
+          {
+            clientId: 3,
+            rangeType: 'weekly',
+            startDate: '2026-08-10',
+            endDate: '2026-08-16',
+            targetHours: 30,
+            dailyTarget: 6,
+            completedSeconds: 0,
+            completedEarnings: 0,
+            activeEntry: null,
+            hourlyRate: 200,
+            currency: 'PLN',
+            dateRangeDays: 7,
+            projectCount: 0,
+            taskCount: 0,
+          },
+        ],
+      },
+      now,
+    );
+
+    expect(summary.targetSeconds).toBe(h(60));
+    expect(summary.remainingTargetSeconds).toBe(h(55));
+    expect(summary.moneyTotals).toEqual([
+      {
+        currency: 'PLN',
+        earned: 600,
+        shouldEarn: 7000,
+      },
+    ]);
+    expect(summary.clients.map(client => client.name)).toEqual([
+      'Atlas',
+      'Beacon',
     ]);
   });
 
@@ -137,7 +179,7 @@ describe('computePeriodSummary', () => {
         estimatedSeconds: h(5),
         remainingEstimatedSeconds: h(2),
         earned: 300,
-        estimatedPrice: 500,
+        shouldEarn: 4000,
         taskCount: 1,
         activeTaskCount: 1,
       }),
@@ -150,7 +192,7 @@ describe('computePeriodSummary', () => {
         estimatedSeconds: h(2),
         remainingEstimatedSeconds: 0,
         earned: 300,
-        estimatedPrice: 300,
+        shouldEarn: 3000,
         taskCount: 1,
         activeTaskCount: 0,
       }),
@@ -178,15 +220,13 @@ describe('computePeriodSummary', () => {
       {
         currency: 'PLN',
         earned: 300,
-        estimatedPrice: 500,
-        atTarget: 4000,
+        shouldEarn: 4000,
       },
     ]);
     expect(summary.clients[1]).toEqual(
       expect.objectContaining({
         earned: null,
-        estimatedPrice: null,
-        atTarget: null,
+        shouldEarn: null,
       }),
     );
   });

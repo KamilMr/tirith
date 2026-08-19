@@ -25,12 +25,8 @@ const PeriodSummary = ({
       ),
     },
     {
-      key: `Estimated Value ${total.currency}`,
-      value: formatCurrency(total.estimatedPrice, total.currency),
-    },
-    {
-      key: `Target Value ${total.currency}`,
-      value: formatCurrency(total.atTarget, total.currency),
+      key: `Should Earn ${total.currency}`,
+      value: formatCurrency(total.shouldEarn, total.currency),
     },
   ]);
 

@@ -20,8 +20,7 @@ const summary = {
     {
       currency: 'PLN',
       earned: 600,
-      estimatedPrice: 800,
-      atTarget: 1000,
+      shouldEarn: 1000,
     },
   ],
   clients: [],
@@ -50,7 +49,8 @@ describe('PeriodSummary', () => {
     expect(output).toContain('Active Days: 2');
     expect(output).toContain('Earnings');
     expect(output).toContain('Earned PLN: 600 PLN');
-    expect(output).toContain('Estimated Value PLN: 800 PLN');
-    expect(output).toContain('Target Value PLN: 1000 PLN');
+    expect(output).toContain('Should Earn PLN: 1000 PLN');
+    expect(output).not.toContain('Estimated Value');
+    expect(output).not.toContain('Target Value');
   });
 });
