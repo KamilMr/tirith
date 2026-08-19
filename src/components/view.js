@@ -27,6 +27,7 @@ import SelectableList from './SelectableList.js';
 import TaskTimeEntries from './TaskTimeEntries.js';
 import {LiveClientDetails, LivePeriodSummary} from './ViewLiveMetrics.js';
 import SelectedTaskSummary from './SelectedTaskSummary.js';
+import {loadTaskViewEntries} from './viewTaskEntries.js';
 import {
   VIEW_RANGE_OPTIONS,
   formatViewPeriod,
@@ -121,12 +122,15 @@ const View = ({height, width = 120}) => {
       const loadTaskDetails = async () => {
         const task = await taskService.selectById(selectedTaskId);
         setTaskDetails(task);
-        const project = allProjects.find(p => p.id === task?.project_id);
-        const clientId = project?.client_id || null;
-        const entries = await timeEntryModel.selectByDateRangeWithTask({
+        if (!task) {
+          setTimeEntries([]);
+          return;
+        }
+        const entries = await loadTaskViewEntries({
+          task,
+          projects: allProjects,
           startDate: currentRange.startDate,
           endDate: currentRange.endDate,
-          clientId,
         });
         setTimeEntries((entries || []).reverse());
       };
