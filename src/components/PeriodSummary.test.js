@@ -24,7 +24,16 @@ const summary = {
       shouldEarn: 1000,
     },
   ],
-  clients: [],
+  clients: [
+    {
+      name: 'SetsApart',
+      workedSeconds: 5 * 3600,
+      targetSeconds: 8 * 3600,
+      estimatedSeconds: 16 * 3600,
+      earned: 600,
+      currency: 'PLN',
+    },
+  ],
 };
 
 describe('PeriodSummary', () => {
@@ -56,6 +65,8 @@ describe('PeriodSummary', () => {
     expect(output).toContain('Earnings');
     expect(output).toContain('Earned PLN: 600 PLN');
     expect(output).toContain('Should Earn PLN: 1000 PLN');
+    expect(output).not.toContain('Per Client');
+    expect(output).not.toContain('SetsApart');
     expect(output).not.toContain('Estimated Value');
     expect(output).not.toContain('Target Value');
   });

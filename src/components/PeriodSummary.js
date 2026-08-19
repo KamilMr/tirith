@@ -122,34 +122,6 @@ const PeriodSummary = ({
           )}
         </Box>
       </Box>
-
-      {summary.clients.length > 0 && (
-        <KeyValue
-          label="Per Client"
-          items={summary.clients.map(client => ({
-            key: client.name,
-            value: (
-              <Text>
-                {formatDuration(client.workedSeconds)} tracked
-                <Text dimColor>
-                  {' '}
-                  / {formatDuration(client.targetSeconds)} target
-                </Text>
-                {' | '}
-                {formatDuration(client.estimatedSeconds)} estimated
-                {' | '}
-                {client.earned === null ? (
-                  <Text dimColor>No rate</Text>
-                ) : (
-                  <Text color="green">
-                    {formatCurrency(client.earned, client.currency)}
-                  </Text>
-                )}
-              </Text>
-            ),
-          }))}
-        />
-      )}
     </Box>
   );
 };
