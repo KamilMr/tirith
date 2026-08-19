@@ -2,7 +2,7 @@ import clientModel from '../models/client.js';
 import projectModel from '../models/project.js';
 import pricingService, {computeLiveClientMetrics} from './pricingService.js';
 import taskService from './taskService.js';
-import {retriveYYYYMMDD} from '../utils.js';
+import {calculateDuration, retriveYYYYMMDD} from '../utils.js';
 
 const sumEstimatedSeconds = tasks =>
   tasks.reduce((total, task) => total + (task.estimatedMinutes || 0) * 60, 0);
@@ -21,9 +21,23 @@ const addMoney = (totals, clientSummary) => {
 };
 
 export const computePeriodSummary = (snapshot, now = new Date()) => {
-  const periodSegments = snapshot.tasks.flatMap(task => task.segments || []);
+  const scopedClients = snapshot.clientId
+    ? snapshot.clients.filter(client => client.id === snapshot.clientId)
+    : snapshot.clients;
+  const scopedProjectIds = new Set(
+    snapshot.projects
+      .filter(
+        project =>
+          !snapshot.clientId || project.client_id === snapshot.clientId,
+      )
+      .map(project => project.id),
+  );
+  const scopedTasks = snapshot.clientId
+    ? snapshot.tasks.filter(task => scopedProjectIds.has(task.projectId))
+    : snapshot.tasks;
+  const periodSegments = scopedTasks.flatMap(task => task.segments || []);
   const projectCount = new Set(
-    snapshot.tasks.map(task => task.projectId).filter(Boolean),
+    scopedTasks.map(task => task.projectId).filter(Boolean),
   ).size;
   const activeDayCount = new Set(
     periodSegments
@@ -40,36 +54,56 @@ export const computePeriodSummary = (snapshot, now = new Date()) => {
     ]),
   );
 
-  const clientSummaries = snapshot.clients.map(client => {
-    const metrics = metricsByClientId.get(client.id);
-    const tasks = snapshot.tasks.filter(task => {
-      const project = projectsById.get(task.projectId);
-      return project?.client_id === client.id;
-    });
-    const estimatedSeconds = sumEstimatedSeconds(tasks);
-    const workedSeconds = metrics?.totalSeconds || 0;
-    const targetSeconds = (metrics?.target || 0) * 3600;
-    const hourlyRate = metrics?.hourlyRate ?? null;
+  const clientSummaries = scopedClients
+    .map(client => {
+      const metrics = metricsByClientId.get(client.id);
+      const tasks = scopedTasks.filter(task => {
+        const project = projectsById.get(task.projectId);
+        return project?.client_id === client.id;
+      });
+      const estimatedSeconds = sumEstimatedSeconds(tasks);
+      const workedSeconds = metrics?.totalSeconds || 0;
+      const targetSeconds = (metrics?.target || 0) * 3600;
+      const hourlyRate = metrics?.hourlyRate ?? null;
 
-    return {
-      clientId: client.id,
-      name: client.name,
-      workedSeconds,
-      targetSeconds,
-      remainingTargetSeconds: Math.max(0, targetSeconds - workedSeconds),
-      estimatedSeconds,
-      remainingEstimatedSeconds: Math.max(0, estimatedSeconds - workedSeconds),
-      earned: metrics?.earnings ?? null,
-      shouldEarn: metrics?.expectedEarnings ?? null,
-      hourlyRate,
-      currency: metrics?.currency || client.currency || 'PLN',
-      taskCount: tasks.length,
-      activeTaskCount: tasks.filter(task => task.isActive).length,
-    };
-  }).filter(client => client.taskCount > 0);
+      return {
+        clientId: client.id,
+        name: client.name,
+        workedSeconds,
+        targetSeconds,
+        remainingTargetSeconds: Math.max(0, targetSeconds - workedSeconds),
+        estimatedSeconds,
+        remainingEstimatedSeconds: Math.max(
+          0,
+          estimatedSeconds - workedSeconds,
+        ),
+        earned: metrics?.earnings ?? null,
+        shouldEarn: metrics?.expectedEarnings ?? null,
+        hourlyRate,
+        currency: metrics?.currency || client.currency || 'PLN',
+        taskCount: tasks.length,
+        activeTaskCount: tasks.filter(task => task.isActive).length,
+      };
+    })
+    .filter(client => snapshot.clientId || client.taskCount > 0);
 
   const moneyTotals = new Map();
   clientSummaries.forEach(client => addMoney(moneyTotals, client));
+
+  const selectedTask = scopedTasks.find(task => task.id === snapshot.taskId);
+  const taskWorkedSeconds = snapshot.taskId
+    ? (selectedTask?.segments || []).reduce(
+        (total, segment) =>
+          total + calculateDuration(segment.startTime, segment.endTime || now),
+        0,
+      )
+    : null;
+  const taskEstimatedMinutes =
+    selectedTask?.estimatedMinutes ?? snapshot.taskEstimatedMinutes;
+  const taskEstimateSeconds =
+    taskEstimatedMinutes !== null && taskEstimatedMinutes !== undefined
+      ? taskEstimatedMinutes * 60
+      : null;
 
   return {
     workedSeconds: clientSummaries.reduce(
@@ -92,12 +126,18 @@ export const computePeriodSummary = (snapshot, now = new Date()) => {
       (total, client) => total + client.remainingEstimatedSeconds,
       0,
     ),
-    taskCount: snapshot.tasks.length,
+    taskCount: scopedTasks.length,
     projectCount,
     sessionCount: periodSegments.length,
     activeDayCount,
-    activeTaskCount: snapshot.tasks.filter(task => task.isActive).length,
-    activeTaskTitle: snapshot.tasks.find(task => task.isActive)?.title || null,
+    activeTaskCount: scopedTasks.filter(task => task.isActive).length,
+    activeTaskTitle: scopedTasks.find(task => task.isActive)?.title || null,
+    taskWorkedSeconds,
+    taskEstimateSeconds,
+    taskRemainingSeconds:
+      taskEstimateSeconds === null
+        ? null
+        : Math.max(0, taskEstimateSeconds - taskWorkedSeconds),
     hasUnpricedClients: clientSummaries.some(
       client => client.taskCount > 0 && client.hourlyRate === null,
     ),
@@ -106,12 +146,29 @@ export const computePeriodSummary = (snapshot, now = new Date()) => {
   };
 };
 
-const getPeriodSummarySnapshot = async (rangeType, startDate, endDate) => {
-  const [clients, projects, tasks] = await Promise.all([
+const getPeriodSummarySnapshot = async (
+  rangeType,
+  startDate,
+  endDate,
+  clientId = null,
+  taskId = null,
+  taskEstimatedMinutes = null,
+) => {
+  const [allClients, allProjects, allTasks] = await Promise.all([
     clientModel.listAll(),
     projectModel.listAll(),
     taskService.getTasksByDateRange(startDate, endDate),
   ]);
+  const clients = clientId
+    ? allClients.filter(client => client.id === clientId)
+    : allClients;
+  const projects = clientId
+    ? allProjects.filter(project => project.client_id === clientId)
+    : allProjects;
+  const projectIds = new Set(projects.map(project => project.id));
+  const tasks = clientId
+    ? allTasks.filter(task => projectIds.has(task.projectId))
+    : allTasks;
   const metricSnapshots = await Promise.all(
     clients.map(client =>
       pricingService.getClientMetricSnapshot(
@@ -127,6 +184,9 @@ const getPeriodSummarySnapshot = async (rangeType, startDate, endDate) => {
     rangeType,
     startDate,
     endDate,
+    clientId,
+    taskId,
+    taskEstimatedMinutes,
     clients,
     projects,
     tasks,

@@ -111,6 +111,53 @@ describe('computePeriodSummary', () => {
     expect(summary.activeDayCount).toBe(2);
   });
 
+  it('scopes time to one client and includes selected-task progress', () => {
+    const summary = computePeriodSummary(
+      {...base, clientId: 1, taskId: 100},
+      now,
+    );
+
+    expect(summary.workedSeconds).toBe(h(3));
+    expect(summary.targetSeconds).toBe(h(40));
+    expect(summary.taskCount).toBe(1);
+    expect(summary.projectCount).toBe(1);
+    expect(summary.sessionCount).toBe(2);
+    expect(summary.taskWorkedSeconds).toBe(h(3));
+    expect(summary.taskEstimateSeconds).toBe(h(5));
+    expect(summary.taskRemainingSeconds).toBe(h(2));
+  });
+
+  it('updates client worked, task worked, and task remaining while the task runs', () => {
+    const snapshot = {...base, clientId: 1, taskId: 100};
+    const first = computePeriodSummary(snapshot, now);
+    const later = computePeriodSummary(
+      snapshot,
+      new Date('2026-08-12T12:30:00Z'),
+    );
+
+    expect(later.workedSeconds - first.workedSeconds).toBe(h(0.5));
+    expect(later.taskWorkedSeconds - first.taskWorkedSeconds).toBe(h(0.5));
+    expect(first.taskRemainingSeconds - later.taskRemainingSeconds).toBe(
+      h(0.5),
+    );
+  });
+
+  it('shows zero task work with the supplied estimate when the task has no period entry', () => {
+    const summary = computePeriodSummary(
+      {
+        ...base,
+        clientId: 1,
+        taskId: 999,
+        taskEstimatedMinutes: 120,
+      },
+      now,
+    );
+
+    expect(summary.taskWorkedSeconds).toBe(0);
+    expect(summary.taskEstimateSeconds).toBe(h(2));
+    expect(summary.taskRemainingSeconds).toBe(h(2));
+  });
+
   it('combines earned and should-earn values by currency', () => {
     const summary = computePeriodSummary(base, now);
 

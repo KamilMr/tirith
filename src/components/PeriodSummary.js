@@ -1,9 +1,10 @@
 import React from 'react';
 import {Box, Text} from 'ink';
 import KeyValue from './KeyValue.js';
-import {formatCurrency, formatTime} from '../utils.js';
+import {formatCurrency, formatEstimation, formatTime} from '../utils.js';
 
 const formatDuration = seconds => formatTime(seconds) || '0s';
+const formatEstimate = seconds => formatEstimation(seconds / 60) || '0m';
 
 const PeriodSummary = ({
   summary,
@@ -36,6 +37,36 @@ const PeriodSummary = ({
       value: <Text color="yellow">Some tasks have no rate</Text>,
     });
 
+  const timeItems = [
+    {key: 'Worked', value: formatDuration(summary.workedSeconds)},
+    {key: 'Target', value: formatDuration(summary.targetSeconds)},
+  ];
+  if (
+    summary.taskWorkedSeconds !== null &&
+    summary.taskWorkedSeconds !== undefined
+  ) {
+    timeItems.push({
+      key: 'Task Worked',
+      value:
+        summary.taskEstimateSeconds === null ? (
+          formatDuration(summary.taskWorkedSeconds)
+        ) : (
+          <Text>
+            {formatDuration(summary.taskWorkedSeconds)}
+            <Text dimColor>
+              {' | '}
+              {formatEstimate(summary.taskEstimateSeconds)} estimate
+            </Text>
+          </Text>
+        ),
+    });
+  }
+  if (summary.taskRemainingSeconds !== null)
+    timeItems.push({
+      key: 'Task Remaining',
+      value: formatDuration(summary.taskRemainingSeconds),
+    });
+
   return (
     <Box flexDirection="column">
       <Text color="cyan" bold>
@@ -46,26 +77,8 @@ const PeriodSummary = ({
         marginTop={1}
         marginBottom={1}
       >
-        <Box width={compact ? undefined : 29}>
-          <KeyValue
-            label="Time"
-            items={[
-              {key: 'Tracked', value: formatDuration(summary.workedSeconds)},
-              {key: 'Target', value: formatDuration(summary.targetSeconds)},
-              {
-                key: 'Target Remaining',
-                value: formatDuration(summary.remainingTargetSeconds),
-              },
-              {
-                key: 'Estimated',
-                value: formatDuration(summary.estimatedSeconds),
-              },
-              {
-                key: 'Estimate Remaining',
-                value: formatDuration(summary.remainingEstimatedSeconds),
-              },
-            ]}
-          />
+        <Box width={compact ? undefined : 42}>
+          <KeyValue label="Time" items={timeItems} />
         </Box>
 
         <Box

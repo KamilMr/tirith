@@ -6,13 +6,22 @@ import useLiveNow from './useLiveNow.js';
 
 const RECONCILIATION_INTERVAL = 30000;
 
-const usePeriodSummary = ({rangeType, startDate, endDate, reload}) => {
+const usePeriodSummary = ({
+  rangeType,
+  startDate,
+  endDate,
+  clientId = null,
+  taskId = null,
+  taskEstimatedMinutes = null,
+  reload,
+}) => {
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!rangeType || !startDate || !endDate) return undefined;
+    if (!rangeType || !startDate || !endDate || (taskId && !clientId))
+      return undefined;
 
     let cancelled = false;
     setLoading(true);
@@ -25,6 +34,9 @@ const usePeriodSummary = ({rangeType, startDate, endDate, reload}) => {
             rangeType,
             startDate,
             endDate,
+            clientId,
+            taskId,
+            taskEstimatedMinutes,
           );
         if (!cancelled) setSnapshot(nextSnapshot);
       } catch (nextError) {
@@ -43,12 +55,23 @@ const usePeriodSummary = ({rangeType, startDate, endDate, reload}) => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [rangeType, startDate, endDate, reload]);
+  }, [
+    rangeType,
+    startDate,
+    endDate,
+    clientId,
+    taskId,
+    taskEstimatedMinutes,
+    reload,
+  ]);
 
   const isCurrentSnapshot =
     snapshot?.rangeType === rangeType &&
     snapshot?.startDate === startDate &&
-    snapshot?.endDate === endDate;
+    snapshot?.endDate === endDate &&
+    snapshot?.clientId === clientId &&
+    snapshot?.taskId === taskId &&
+    snapshot?.taskEstimatedMinutes === taskEstimatedMinutes;
   const currentSnapshot = isCurrentSnapshot ? snapshot : null;
   const now = useLiveNow(
     Boolean(currentSnapshot?.tasks.some(task => task.isActive)),

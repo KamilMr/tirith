@@ -77,6 +77,7 @@ const View = ({height, width = 120}) => {
 
   const taskProject = allProjects.find(p => p.id === taskDetails?.project_id);
   const taskClient = clients.find(c => c.id === taskProject?.client_id);
+  const reportClientId = selectedTaskId ? taskClient?.id : selectedClientId;
   const selectedTaskEntries = timeEntries.filter(
     entry => entry.task_id === selectedTaskId,
   );
@@ -384,6 +385,9 @@ const View = ({height, width = 120}) => {
       rangeType={selectedRange.type}
       startDate={currentRange.startDate}
       endDate={currentRange.endDate}
+      clientId={reportClientId}
+      taskId={selectedTaskId}
+      taskEstimatedMinutes={taskDetails?.estimated_minutes ?? null}
       reload={reload}
       rangeLabel={selectedRange.label}
       periodLabel={periodLabel}

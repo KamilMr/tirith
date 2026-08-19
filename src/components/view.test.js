@@ -165,7 +165,7 @@ describe('View live metric isolation', () => {
     harness.stateIndex = 0;
   });
 
-  it('shows the overall report with selected-task context', () => {
+  it('scopes the report to the selected task client and range', () => {
     const view = View({height: 40, width: 70});
 
     const periodSummary = findElement(
@@ -185,6 +185,8 @@ describe('View live metric isolation', () => {
       rangeType: 'daily',
       startDate: '2026-08-18',
       endDate: '2026-08-18',
+      clientId: 1,
+      taskId: 3,
       periodLabel: 'August 18, 2026',
     });
     expect(periodSummary.props.compact).toBe(true);
