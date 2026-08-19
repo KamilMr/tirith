@@ -25,14 +25,8 @@ import PeriodNavigator from './PeriodNavigator.js';
 import Earnings from './Earnings.js';
 import SelectableList from './SelectableList.js';
 import TaskTimeEntries from './TaskTimeEntries.js';
-import {
-  LiveClientDetails,
-  LiveClientEarnings,
-  LivePeriodSummary,
-  LiveTaskDuration,
-  LiveTaskPricing,
-} from './ViewLiveMetrics.js';
-import {formatEstimation, formatRelativeTime, formatHour} from '../utils.js';
+import {LiveClientDetails, LivePeriodSummary} from './ViewLiveMetrics.js';
+import SelectedTaskSummary from './SelectedTaskSummary.js';
 import {
   VIEW_RANGE_OPTIONS,
   formatViewPeriod,
@@ -81,12 +75,15 @@ const View = ({height}) => {
 
   const taskProject = allProjects.find(p => p.id === taskDetails?.project_id);
   const taskClient = clients.find(c => c.id === taskProject?.client_id);
+  const selectedTaskEntries = timeEntries.filter(
+    entry => entry.task_id === selectedTaskId,
+  );
 
   const {
     selectedIndex: selectedEntryIndex,
     selectNext: selectNextEntry,
     selectPrevious: selectPreviousEntry,
-  } = useScrollableList(timeEntries, {wrap: true});
+  } = useScrollableList(selectedTaskEntries, {wrap: true});
   const {analytics, loading: analyticsLoading} = useTaskAnalytics(
     selectedTaskId,
     currentRange.startDate,
@@ -147,8 +144,8 @@ const View = ({height}) => {
   ]);
 
   const deleteSelectedEntry = async () => {
-    if (timeEntries.length === 0) return;
-    const entryToDelete = timeEntries[selectedEntryIndex];
+    if (selectedTaskEntries.length === 0) return;
+    const entryToDelete = selectedTaskEntries[selectedEntryIndex];
     await timeEntryModel.delete(entryToDelete.id);
     setTimeEntries(prev => prev.filter(e => e.id !== entryToDelete.id));
     triggerReload();
@@ -157,9 +154,9 @@ const View = ({height}) => {
   const {openEditor} = useEditorBuffer(triggerReload);
 
   const startEntryAdjustment = () => {
-    if (timeEntries.length === 0) return;
+    if (selectedTaskEntries.length === 0) return;
 
-    const entryToAdjust = timeEntries[selectedEntryIndex];
+    const entryToAdjust = selectedTaskEntries[selectedEntryIndex];
     if (!entryToAdjust?.end) return;
 
     setDraftEntry(roundTimeEntryToFiveMinutes(entryToAdjust));
@@ -202,8 +199,8 @@ const View = ({height}) => {
   };
 
   const handleEditorOpen = () => {
-    if (timeEntries.length === 0) return;
-    openEditor(timeEntries, taskDetails?.title || 'All Entries');
+    if (selectedTaskEntries.length === 0) return;
+    openEditor(selectedTaskEntries, taskDetails?.title || 'Selected Task');
   };
 
   const selectRange = direction => {
@@ -286,131 +283,39 @@ const View = ({height}) => {
     : BORDER_COLOR_DEFAULT;
   const title = getBorderTitle(VIEW);
 
-  const renderTaskDetails = () => {
-    if (!taskDetails) return <Text dimColor>Loading task details...</Text>;
-
-    const project = taskProject;
-    const client = taskClient;
-
-    const selectedTaskEntries = timeEntries.filter(
-      e => e.task_id === selectedTaskId,
-    );
-    const activeEntries = selectedTaskEntries.filter(e => !e.end).length;
-    return (
-      <Box flexDirection="column">
-        <Box flexDirection="row" marginBottom={1}>
-          <Box width={30}>
-            <KeyValue
-              label="Task Details:"
-              items={[
-                {key: 'Title', value: taskDetails.title},
-                {key: 'Project', value: project?.name || 'Unknown'},
-                {key: 'Client', value: client?.name || 'Unknown'},
-                {
-                  key: 'Status',
-                  value:
-                    activeEntries > 0 ? (
-                      <Text color="green">Active</Text>
-                    ) : (
-                      'Stopped'
-                    ),
-                },
-                {
-                  key: 'Estimation',
-                  value: formatEstimation(taskDetails.estimated_minutes) || (
-                    <Text dimColor>None</Text>
-                  ),
-                },
-                {
-                  key: 'Total',
-                  value: (
-                    <LiveTaskDuration
-                      timeEntries={timeEntries}
-                      taskId={selectedTaskId}
-                      estimatedMinutes={taskDetails.estimated_minutes}
-                    />
-                  ),
-                },
-              ]}
-            />
-            <LiveTaskPricing
-              taskId={selectedTaskId}
-              estimatedMinutes={taskDetails.estimated_minutes}
-              startDate={currentRange.startDate}
-              endDate={currentRange.endDate}
-              reload={reload}
-            />
-          </Box>
-
-          <Box width={35} marginLeft={2}>
-            {analyticsLoading ? (
-              <Text dimColor>Loading...</Text>
-            ) : analytics ? (
-              <KeyValue
-                label={`Analytics (${analytics.meta.dateRangeDays}d):`}
-                items={[
-                  {key: 'Sessions', value: analytics.distribution.sessionCount},
-                  {
-                    key: 'Days',
-                    value: `${analytics.distribution.daysWorked}/${analytics.distribution.dateRangeDays}`,
-                  },
-                  ...(analytics.distribution.peakHour !== null
-                    ? [
-                        {
-                          key: 'Peak',
-                          value: formatHour(analytics.distribution.peakHour),
-                        },
-                      ]
-                    : []),
-                  ...(analytics.distribution.deepWorkCount > 0
-                    ? [
-                        {
-                          key: 'Deep Work',
-                          value: (
-                            <Text color="green">
-                              {analytics.distribution.deepWorkCount}
-                            </Text>
-                          ),
-                        },
-                      ]
-                    : []),
-                  ...(analytics.distribution.lastActivityDate
-                    ? [
-                        {
-                          key: 'Last',
-                          value: formatRelativeTime(
-                            analytics.distribution.lastActivityDate,
-                          ),
-                        },
-                      ]
-                    : []),
-                ]}
-              />
-            ) : null}
-          </Box>
-
-          <Box width={25} marginLeft={2}>
-            <LiveClientEarnings
-              clientId={selectedClientId}
-              rangeType={selectedRange.type}
-              startDate={currentRange.startDate}
-              endDate={currentRange.endDate}
-              reload={reload}
-            />
-          </Box>
-        </Box>
-
+  const renderTaskDetails = () => (
+    <Box flexDirection="column">
+      {renderDashboard()}
+      <Box marginTop={1}>
+        {taskDetails ? (
+          <SelectedTaskSummary
+            task={taskDetails}
+            project={taskProject}
+            client={taskClient}
+            timeEntries={selectedTaskEntries}
+            analytics={analytics}
+            analyticsLoading={analyticsLoading}
+            startDate={currentRange.startDate}
+            endDate={currentRange.endDate}
+            reload={reload}
+          />
+        ) : (
+          <Text dimColor>Loading selected task...</Text>
+        )}
+      </Box>
+      <Box flexDirection="column" marginTop={1}>
         <TaskTimeEntries
           height={height}
-          timeEntries={timeEntries}
+          timeEntries={selectedTaskEntries}
+          overlapEntries={timeEntries}
           selectedEntryIndex={selectedEntryIndex}
           isViewFocused={isViewFocused}
           selectedTaskId={selectedTaskId}
           draftEntry={draftEntry}
         />
       </Box>
-    );
-  };
+    </Box>
+  );
 
   const renderProjectDetails = () => {
     const project = allProjects.find(p => p.id === selectedProjectId);
@@ -554,7 +459,7 @@ const View = ({height}) => {
     return renderDashboard();
   };
 
-  const hasTimeEntries = timeEntries.length > 0;
+  const hasTimeEntries = selectedTaskEntries.length > 0;
 
   return (
     <Frame borderColor={borderColor} width={'100%'} height={height}>

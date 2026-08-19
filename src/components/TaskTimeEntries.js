@@ -24,6 +24,7 @@ const EntryDuration = ({entry}) => {
 const TaskTimeEntries = ({
   height,
   timeEntries,
+  overlapEntries = timeEntries,
   selectedEntryIndex,
   isViewFocused,
   selectedTaskId,
@@ -32,14 +33,14 @@ const TaskTimeEntries = ({
   const selectedEntry = timeEntries[selectedEntryIndex];
   const entryBeingChecked = draftEntry || selectedEntry;
   const entryOverlaps = entryBeingChecked?.end
-    ? findTimeEntryOverlaps(entryBeingChecked, timeEntries)
+    ? findTimeEntryOverlaps(entryBeingChecked, overlapEntries)
     : [];
   const shouldShowOverlapInfo = draftEntry || entryOverlaps.length > 0;
 
   return (
     <>
       <Text color="cyan" bold>
-        Time Entries ({timeEntries.length}):
+        Selected Task Sessions ({timeEntries.length})
       </Text>
       {timeEntries.length === 0 ? (
         <Text dimColor marginLeft={2}>
@@ -91,7 +92,7 @@ const TaskTimeEntries = ({
                     ? '#E8A030'
                     : 'white';
               const rowOverlaps = displayEntry.end
-                ? findTimeEntryOverlaps(displayEntry, timeEntries)
+                ? findTimeEntryOverlaps(displayEntry, overlapEntries)
                 : [];
               const overlapSummary = formatTimeEntryOverlapSummary(
                 rowOverlaps,

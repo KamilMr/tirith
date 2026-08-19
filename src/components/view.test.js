@@ -9,7 +9,22 @@ vi.mock('react', async importOriginal => {
     [{id: 2, client_id: 1, name: 'SkyBound'}],
     [],
     {id: 3, project_id: 2, title: '[ADMIN:SU]'},
-    [],
+    [
+      {
+        id: 10,
+        task_id: 3,
+        title: '[ADMIN:SU]',
+        start: new Date('2026-08-18T09:00:00'),
+        end: new Date('2026-08-18T10:00:00'),
+      },
+      {
+        id: 11,
+        task_id: 4,
+        title: 'Another task',
+        start: new Date('2026-08-18T10:00:00'),
+        end: new Date('2026-08-18T11:00:00'),
+      },
+    ],
     null,
     'task',
     0,
@@ -89,6 +104,16 @@ vi.mock('../hooks/usePeriodSummary.js', () => ({
   },
 }));
 
+vi.mock('./SelectedTaskSummary.js', () => ({
+  default: function SelectedTaskSummaryProbe() {
+    return null;
+  },
+}));
+vi.mock('./TaskTimeEntries.js', () => ({
+  default: function TaskTimeEntriesProbe() {
+    return null;
+  },
+}));
 vi.mock('./Earnings.js', () => ({
   default: function EarningsProbe() {
     return null;
@@ -117,7 +142,9 @@ vi.mock('./ViewLiveMetrics.js', () => ({
   },
 }));
 
-import {LiveClientEarnings, LiveTaskPricing} from './ViewLiveMetrics.js';
+import TaskTimeEntries from './TaskTimeEntries.js';
+import SelectedTaskSummary from './SelectedTaskSummary.js';
+import {LivePeriodSummary} from './ViewLiveMetrics.js';
 import View from './view.js';
 
 const findElement = (node, predicate) => {
@@ -138,28 +165,31 @@ describe('View live metric isolation', () => {
     harness.stateIndex = 0;
   });
 
-  it('delegates task and client prices to live leaf components', () => {
+  it('shows the overall report with selected-task context', () => {
     const view = View({height: 40});
 
-    const taskPricing = findElement(
+    const periodSummary = findElement(
       view,
-      element => element.type === LiveTaskPricing,
+      element => element.type === LivePeriodSummary,
     );
-    const clientEarnings = findElement(
+    const taskSummary = findElement(
       view,
-      element => element.type === LiveClientEarnings,
+      element => element.type === SelectedTaskSummary,
+    );
+    const taskSessions = findElement(
+      view,
+      element => element.type === TaskTimeEntries,
     );
 
-    expect(taskPricing.props).toMatchObject({
-      taskId: 3,
-      startDate: '2026-08-18',
-      endDate: '2026-08-18',
-    });
-    expect(clientEarnings.props).toMatchObject({
-      clientId: 1,
+    expect(periodSummary.props).toMatchObject({
       rangeType: 'daily',
       startDate: '2026-08-18',
       endDate: '2026-08-18',
     });
+    expect(taskSummary.props.timeEntries.map(entry => entry.id)).toEqual([10]);
+    expect(taskSessions.props.timeEntries.map(entry => entry.id)).toEqual([10]);
+    expect(taskSessions.props.overlapEntries.map(entry => entry.id)).toEqual([
+      10, 11,
+    ]);
   });
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import {PassThrough} from 'node:stream';
-import {render} from 'ink';
+import {render, renderToString} from 'ink';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {LiveClockProvider} from '../contexts/LiveClockContext.js';
 import TaskTimeEntries from './TaskTimeEntries.js';
@@ -24,6 +24,42 @@ const entry = ({id, start, end = null}) => ({
 });
 
 describe('TaskTimeEntries live rendering', () => {
+  it('labels selected-task sessions while checking overlaps against all entries', () => {
+    const selectedTaskEntries = [
+      entry({
+        id: 1,
+        start: '2026-08-18T09:00:00.000Z',
+        end: '2026-08-18T09:30:00.000Z',
+      }),
+    ];
+    const overlapEntries = [
+      ...selectedTaskEntries,
+      entry({
+        id: 2,
+        start: '2026-08-18T10:00:00.000Z',
+        end: '2026-08-18T10:30:00.000Z',
+      }),
+    ];
+    const output = renderToString(
+      <TaskTimeEntries
+        height={40}
+        timeEntries={selectedTaskEntries}
+        overlapEntries={overlapEntries}
+        selectedEntryIndex={0}
+        isViewFocused
+        selectedTaskId={3}
+        draftEntry={null}
+      />,
+      {columns: 120},
+    );
+
+    expect(output).toContain('Selected Task Sessions (1)');
+    expect(overlapHarness.find).toHaveBeenCalledWith(
+      expect.objectContaining({id: 1}),
+      overlapEntries,
+    );
+  });
+
   beforeEach(() => {
     vi.useFakeTimers({toFake: ['Date', 'setInterval', 'clearInterval']});
     vi.setSystemTime(new Date('2026-08-18T10:00:00.000Z'));
