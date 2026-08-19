@@ -65,8 +65,10 @@ describe('PeriodSummary', () => {
     expect(output).toContain('Sessions: 3');
     expect(output).toContain('Active Days: 2');
     expect(output).toContain('Earnings');
-    expect(output).toContain('Earned PLN: 600 PLN');
-    expect(output).toContain('Should Earn PLN: 1000 PLN');
+    expect(output).toContain('Earned: 600 PLN');
+    expect(output).toContain('Should Earn: 1000 PLN');
+    expect(output).not.toContain('Earned PLN:');
+    expect(output).not.toContain('Should Earn PLN:');
     expect(output).not.toContain('Per Client');
     expect(output).not.toContain('SetsApart');
     expect(output).not.toContain('Estimated Value');

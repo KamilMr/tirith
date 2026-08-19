@@ -24,7 +24,7 @@ const PeriodSummary = ({
 
   const pricingItems = summary.moneyTotals.flatMap(total => [
     {
-      key: `Earned ${total.currency}`,
+      key: 'Earned',
       value: (
         <Text color="green">
           {formatCurrency(total.earned, total.currency)}
@@ -32,7 +32,7 @@ const PeriodSummary = ({
       ),
     },
     {
-      key: `Should Earn ${total.currency}`,
+      key: 'Should Earn',
       value: formatCurrency(total.shouldEarn, total.currency),
     },
   ]);
