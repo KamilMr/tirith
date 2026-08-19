@@ -152,6 +152,7 @@ export const LiveClientDetails = memo(function LiveClientDetails({
 
 export const LivePeriodSummary = memo(function LivePeriodSummary({
   rangeLabel,
+  periodLabel,
   ...summaryProps
 }) {
   const {summary, loading} = usePeriodSummary(summaryProps);
@@ -161,6 +162,7 @@ export const LivePeriodSummary = memo(function LivePeriodSummary({
       summary={summary}
       loading={loading}
       rangeLabel={rangeLabel}
+      periodLabel={periodLabel}
     />
   );
 });

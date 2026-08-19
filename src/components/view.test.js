@@ -185,6 +185,7 @@ describe('View live metric isolation', () => {
       rangeType: 'daily',
       startDate: '2026-08-18',
       endDate: '2026-08-18',
+      periodLabel: 'August 18, 2026',
     });
     expect(taskSummary.props.timeEntries.map(entry => entry.id)).toEqual([10]);
     expect(taskSessions.props.timeEntries.map(entry => entry.id)).toEqual([10]);

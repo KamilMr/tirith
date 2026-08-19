@@ -23,7 +23,7 @@ const RangeSelector = ({
         )}
       </Text>
     ))}
-    <Text dimColor> ({controls})</Text>
+    {controls && <Text dimColor> ({controls})</Text>}
   </Box>
 );
 

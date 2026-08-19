@@ -379,6 +379,7 @@ const View = ({height}) => {
       endDate={currentRange.endDate}
       reload={reload}
       rangeLabel={selectedRange.label}
+      periodLabel={periodLabel}
     />
   );
 
@@ -488,13 +489,13 @@ const View = ({height}) => {
           <RangeSelector
             options={VIEW_RANGE_OPTIONS}
             selectedIndex={selectedRangeIndex}
-            controls="h/l to choose, Enter to confirm"
+            controls={null}
             isFocused={isViewFocused && viewLevel === 'range'}
           />
           <PeriodNavigator
             rangeLabel={selectedRange.label}
             periodLabel={periodLabel}
-            controls="h/l to navigate, t for current, Enter to open, Esc to go back"
+            controls={null}
             isFocused={isViewFocused && viewLevel === 'period'}
           />
           {renderContent()}

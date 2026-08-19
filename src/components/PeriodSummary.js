@@ -5,7 +5,7 @@ import {formatCurrency, formatTime} from '../utils.js';
 
 const formatDuration = seconds => formatTime(seconds) || '0s';
 
-const PeriodSummary = ({summary, loading, rangeLabel}) => {
+const PeriodSummary = ({summary, loading, rangeLabel, periodLabel}) => {
   if (loading && !summary) return <Text dimColor>Loading summary...</Text>;
   if (!summary) return <Text dimColor>Summary unavailable</Text>;
 
@@ -37,7 +37,7 @@ const PeriodSummary = ({summary, loading, rangeLabel}) => {
   return (
     <Box flexDirection="column">
       <Text color="cyan" bold>
-        {rangeLabel} Report
+        {rangeLabel} Report{periodLabel ? ` — ${periodLabel}` : ''}
       </Text>
       <Box flexDirection="row" marginTop={1} marginBottom={1}>
         <Box width={29}>

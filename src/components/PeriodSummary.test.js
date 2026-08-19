@@ -30,11 +30,16 @@ const summary = {
 describe('PeriodSummary', () => {
   it('presents the overall report in clear time, activity, and earnings groups', () => {
     const output = renderToString(
-      <PeriodSummary summary={summary} loading={false} rangeLabel="Daily" />,
+      <PeriodSummary
+        summary={summary}
+        loading={false}
+        rangeLabel="Daily"
+        periodLabel="August 19, 2026"
+      />,
       {columns: 120},
     );
 
-    expect(output).toContain('Daily Report');
+    expect(output).toContain('Daily Report — August 19, 2026');
     expect(output).toContain('Time');
     expect(output).toContain('Tracked: 5h');
     expect(output).toContain('Activity');
