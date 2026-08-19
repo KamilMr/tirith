@@ -9,7 +9,6 @@ const PeriodSummary = ({summary, loading, rangeLabel}) => {
   if (loading && !summary) return <Text dimColor>Loading summary...</Text>;
   if (!summary) return <Text dimColor>Summary unavailable</Text>;
 
-  const taskValue = `${summary.taskCount} (${summary.activeTaskCount} active)`;
   const pricingItems = summary.moneyTotals.flatMap(total => [
     {
       key: `Earned ${total.currency}`,
@@ -20,11 +19,11 @@ const PeriodSummary = ({summary, loading, rangeLabel}) => {
       ),
     },
     {
-      key: `Estimated Price ${total.currency}`,
+      key: `Estimated Value ${total.currency}`,
       value: formatCurrency(total.estimatedPrice, total.currency),
     },
     {
-      key: `At Target ${total.currency}`,
+      key: `Target Value ${total.currency}`,
       value: formatCurrency(total.atTarget, total.currency),
     },
   ]);
@@ -37,47 +36,58 @@ const PeriodSummary = ({summary, loading, rangeLabel}) => {
 
   return (
     <Box flexDirection="column">
-      <Box flexDirection="row" marginBottom={1}>
-        <Box width={34}>
+      <Text color="cyan" bold>
+        {rangeLabel} Report
+      </Text>
+      <Box flexDirection="row" marginTop={1} marginBottom={1}>
+        <Box width={29}>
           <KeyValue
-            label={`${rangeLabel} Summary:`}
+            label="Time"
             items={[
+              {key: 'Tracked', value: formatDuration(summary.workedSeconds)},
+              {key: 'Target', value: formatDuration(summary.targetSeconds)},
               {
-                key: 'Active',
+                key: 'Target Remaining',
+                value: formatDuration(summary.remainingTargetSeconds),
+              },
+              {
+                key: 'Estimated',
+                value: formatDuration(summary.estimatedSeconds),
+              },
+              {
+                key: 'Estimate Remaining',
+                value: formatDuration(summary.remainingEstimatedSeconds),
+              },
+            ]}
+          />
+        </Box>
+
+        <Box width={24} marginLeft={2}>
+          <KeyValue
+            label="Activity"
+            items={[
+              {key: 'Tasks', value: summary.taskCount},
+              {key: 'Projects', value: summary.projectCount},
+              {key: 'Sessions', value: summary.sessionCount},
+              {key: 'Active Days', value: summary.activeDayCount},
+              {
+                key: 'Running',
                 value: summary.activeTaskTitle ? (
                   <Text color="green">{summary.activeTaskTitle}</Text>
                 ) : (
                   <Text dimColor>None</Text>
                 ),
               },
-              {key: 'Worked', value: formatDuration(summary.workedSeconds)},
-              {
-                key: 'Work Target',
-                value: formatDuration(summary.targetSeconds),
-              },
-              {
-                key: 'Remaining Target',
-                value: formatDuration(summary.remainingTargetSeconds),
-              },
-              {
-                key: 'Estimated Work',
-                value: formatDuration(summary.estimatedSeconds),
-              },
-              {
-                key: 'Remaining Estimate',
-                value: formatDuration(summary.remainingEstimatedSeconds),
-              },
-              {key: 'Tasks', value: taskValue},
             ]}
           />
         </Box>
 
-        <Box width={36} marginLeft={2}>
+        <Box flexGrow={1} marginLeft={2}>
           {pricingItems.length > 0 ? (
-            <KeyValue label="Pricing:" items={pricingItems} />
+            <KeyValue label="Earnings" items={pricingItems} />
           ) : (
             <KeyValue
-              label="Pricing:"
+              label="Earnings"
               items={[
                 {key: 'Status', value: <Text dimColor>No rates set</Text>},
               ]}
@@ -88,12 +98,12 @@ const PeriodSummary = ({summary, loading, rangeLabel}) => {
 
       {summary.clients.length > 0 && (
         <KeyValue
-          label="Per Client:"
+          label="Per Client"
           items={summary.clients.map(client => ({
             key: client.name,
             value: (
               <Text>
-                {formatDuration(client.workedSeconds)} worked
+                {formatDuration(client.workedSeconds)} tracked
                 <Text dimColor>
                   {' '}
                   / {formatDuration(client.targetSeconds)} target
