@@ -12,6 +12,7 @@ import {
   sumEntryDurations,
 } from '../utils.js';
 import Earnings from './Earnings.js';
+import KeyValue from './KeyValue.js';
 import PeriodSummary from './PeriodSummary.js';
 import WorkTargets from './WorkTargets.js';
 
@@ -75,16 +76,27 @@ export const LiveTaskPricing = memo(function LiveTaskPricing({
   );
 
   return (
-    <>
-      <Text>
-        <Text bold>Estimated Price: </Text>
-        <Price value={estimatedPrice} pricing={pricing} loading={loading} />
-      </Text>
-      <Text>
-        <Text bold>Current Price: </Text>
-        <Price value={pricing?.earnings} pricing={pricing} loading={loading} />
-      </Text>
-    </>
+    <KeyValue
+      label="Value"
+      items={[
+        {
+          key: 'Estimated',
+          value: (
+            <Price value={estimatedPrice} pricing={pricing} loading={loading} />
+          ),
+        },
+        {
+          key: 'Earned',
+          value: (
+            <Price
+              value={pricing?.earnings}
+              pricing={pricing}
+              loading={loading}
+            />
+          ),
+        },
+      ]}
+    />
   );
 });
 

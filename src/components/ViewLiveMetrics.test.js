@@ -81,8 +81,9 @@ describe('View live metric leaves', () => {
     );
 
     expect(duration).toContain('30m 5s (+5s)');
-    expect(pricing).toContain('Estimated Price: 173 PLN');
-    expect(pricing).toContain('Current Price: 10 PLN');
+    expect(pricing).toContain('Value');
+    expect(pricing).toContain('Estimated: 173 PLN');
+    expect(pricing).toContain('Earned: 10 PLN');
   });
 
   it('keeps task-view client earnings scoped to the selected range', () => {
