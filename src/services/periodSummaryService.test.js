@@ -19,6 +19,18 @@ const base = {
       projectId: 10,
       estimatedMinutes: 300,
       isActive: true,
+      segments: [
+        {
+          id: 1,
+          startTime: new Date('2026-08-10T09:00:00Z'),
+          endTime: new Date('2026-08-10T10:00:00Z'),
+        },
+        {
+          id: 2,
+          startTime: new Date('2026-08-12T10:00:00Z'),
+          endTime: null,
+        },
+      ],
     },
     {
       id: 200,
@@ -26,6 +38,13 @@ const base = {
       projectId: 20,
       estimatedMinutes: 120,
       isActive: false,
+      segments: [
+        {
+          id: 3,
+          startTime: new Date('2026-08-10T13:00:00Z'),
+          endTime: new Date('2026-08-10T15:00:00Z'),
+        },
+      ],
     },
   ],
   metricSnapshots: [
@@ -82,6 +101,14 @@ describe('computePeriodSummary', () => {
     expect(summary.taskCount).toBe(2);
     expect(summary.activeTaskCount).toBe(1);
     expect(summary.activeTaskTitle).toBe('Report');
+  });
+
+  it('counts projects, sessions, and active days from period activity', () => {
+    const summary = computePeriodSummary(base, now);
+
+    expect(summary.projectCount).toBe(2);
+    expect(summary.sessionCount).toBe(3);
+    expect(summary.activeDayCount).toBe(2);
   });
 
   it('combines live earnings and estimated prices by currency', () => {

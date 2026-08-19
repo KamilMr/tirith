@@ -5,6 +5,7 @@ import pricingService, {
   computeLiveClientMetrics,
 } from './pricingService.js';
 import taskService from './taskService.js';
+import {retriveYYYYMMDD} from '../utils.js';
 
 const sumEstimatedSeconds = tasks =>
   tasks.reduce((total, task) => total + (task.estimatedMinutes || 0) * 60, 0);
@@ -25,6 +26,15 @@ const addMoney = (totals, clientSummary) => {
 };
 
 export const computePeriodSummary = (snapshot, now = new Date()) => {
+  const periodSegments = snapshot.tasks.flatMap(task => task.segments || []);
+  const projectCount = new Set(
+    snapshot.tasks.map(task => task.projectId).filter(Boolean),
+  ).size;
+  const activeDayCount = new Set(
+    periodSegments
+      .filter(segment => segment.startTime)
+      .map(segment => retriveYYYYMMDD(new Date(segment.startTime))),
+  ).size;
   const projectsById = new Map(
     snapshot.projects.map(project => [project.id, project]),
   );
@@ -92,6 +102,9 @@ export const computePeriodSummary = (snapshot, now = new Date()) => {
       0,
     ),
     taskCount: snapshot.tasks.length,
+    projectCount,
+    sessionCount: periodSegments.length,
+    activeDayCount,
     activeTaskCount: snapshot.tasks.filter(task => task.isActive).length,
     activeTaskTitle: snapshot.tasks.find(task => task.isActive)?.title || null,
     hasUnpricedClients: clientSummaries.some(
