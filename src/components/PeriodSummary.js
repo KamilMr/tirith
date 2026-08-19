@@ -1,9 +1,15 @@
 import React from 'react';
 import {Box, Text} from 'ink';
 import KeyValue from './KeyValue.js';
-import {formatCurrency, formatEstimation, formatTime} from '../utils.js';
+import {formatCurrency, formatEstimation} from '../utils.js';
 
-const formatDuration = seconds => formatTime(seconds) || '0s';
+const formatDuration = seconds => {
+  const totalMinutes = Math.floor(seconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+};
 const formatEstimate = seconds => formatEstimation(seconds / 60) || '0m';
 
 const PeriodSummary = ({

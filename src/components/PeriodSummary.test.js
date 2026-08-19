@@ -5,8 +5,8 @@ import PeriodSummary from './PeriodSummary.js';
 
 const summary = {
   activeTaskTitle: 'Report',
-  workedSeconds: 5 * 3600,
-  targetSeconds: 8 * 3600,
+  workedSeconds: 5 * 3600 + 11,
+  targetSeconds: 8 * 3600 + 51 * 60 + 25.714285714286234,
   remainingTargetSeconds: 3 * 3600,
   taskWorkedSeconds: 5 * 3600,
   taskEstimateSeconds: 7 * 3600,
@@ -27,8 +27,8 @@ const summary = {
   clients: [
     {
       name: 'SetsApart',
-      workedSeconds: 5 * 3600,
-      targetSeconds: 8 * 3600,
+      workedSeconds: 5 * 3600 + 11,
+      targetSeconds: 8 * 3600 + 51 * 60 + 25.714285714286234,
       estimatedSeconds: 16 * 3600,
       earned: 600,
       currency: 'PLN',
@@ -51,9 +51,11 @@ describe('PeriodSummary', () => {
 
     expect(output).toContain('Daily Report — August 19, 2026');
     expect(output).toContain('Time');
-    expect(output).toContain('Worked: 5h');
-    expect(output).toContain('Target: 8h');
-    expect(output).toContain('Task Worked: 5h 0m 0s | 7h estimate');
+    expect(output).toContain('Worked: 5h 0m');
+    expect(output).toContain('Target: 8h 51m');
+    expect(output).not.toContain('Worked: 5h 0m 11s');
+    expect(output).not.toContain('25.714285714286234s');
+    expect(output).toContain('Task Worked: 5h 0m | 7h estimate');
     expect(output).toContain('Task Remaining: 2h');
     expect(output).not.toContain('Task Estimate:');
     expect(output).not.toContain('Target Remaining');
@@ -82,7 +84,7 @@ describe('PeriodSummary', () => {
       {columns: 120},
     );
 
-    expect(output).toContain('Task Worked: 5h 0m 0s | 7h estimate');
+    expect(output).toContain('Task Worked: 5h 0m | 7h estimate');
   });
 
   it('shows task worked without remaining time when no estimate exists', () => {
@@ -102,7 +104,7 @@ describe('PeriodSummary', () => {
       {columns: 50},
     );
 
-    expect(output).toContain('Task Worked: 3h 0m 0s');
+    expect(output).toContain('Task Worked: 3h 0m');
     expect(output).not.toContain('estimate');
     expect(output).not.toContain('Task Remaining');
   });
