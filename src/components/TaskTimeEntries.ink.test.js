@@ -49,11 +49,14 @@ describe('TaskTimeEntries live rendering', () => {
         isViewFocused
         selectedTaskId={3}
         draftEntry={null}
+        compact
       />,
-      {columns: 120},
+      {columns: 50},
     );
 
     expect(output).toContain('Selected Task Sessions (1)');
+    expect(output).toContain('Duration');
+    expect(output).not.toContain('Task 1');
     expect(overlapHarness.find).toHaveBeenCalledWith(
       expect.objectContaining({id: 1}),
       overlapEntries,

@@ -5,7 +5,13 @@ import {formatCurrency, formatTime} from '../utils.js';
 
 const formatDuration = seconds => formatTime(seconds) || '0s';
 
-const PeriodSummary = ({summary, loading, rangeLabel, periodLabel}) => {
+const PeriodSummary = ({
+  summary,
+  loading,
+  rangeLabel,
+  periodLabel,
+  compact = false,
+}) => {
   if (loading && !summary) return <Text dimColor>Loading summary...</Text>;
   if (!summary) return <Text dimColor>Summary unavailable</Text>;
 
@@ -39,8 +45,12 @@ const PeriodSummary = ({summary, loading, rangeLabel, periodLabel}) => {
       <Text color="cyan" bold>
         {rangeLabel} Report{periodLabel ? ` — ${periodLabel}` : ''}
       </Text>
-      <Box flexDirection="row" marginTop={1} marginBottom={1}>
-        <Box width={29}>
+      <Box
+        flexDirection={compact ? 'column' : 'row'}
+        marginTop={1}
+        marginBottom={1}
+      >
+        <Box width={compact ? undefined : 29}>
           <KeyValue
             label="Time"
             items={[
@@ -62,7 +72,11 @@ const PeriodSummary = ({summary, loading, rangeLabel, periodLabel}) => {
           />
         </Box>
 
-        <Box width={24} marginLeft={2}>
+        <Box
+          width={compact ? undefined : 24}
+          marginLeft={compact ? 0 : 2}
+          marginTop={compact ? 1 : 0}
+        >
           <KeyValue
             label="Activity"
             items={[
@@ -82,7 +96,11 @@ const PeriodSummary = ({summary, loading, rangeLabel, periodLabel}) => {
           />
         </Box>
 
-        <Box flexGrow={1} marginLeft={2}>
+        <Box
+          flexGrow={1}
+          marginLeft={compact ? 0 : 2}
+          marginTop={compact ? 1 : 0}
+        >
           {pricingItems.length > 0 ? (
             <KeyValue label="Earnings" items={pricingItems} />
           ) : (

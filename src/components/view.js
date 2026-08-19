@@ -36,7 +36,7 @@ import {
   moveViewRangeIndex,
 } from './viewRange.js';
 
-const View = ({height}) => {
+const View = ({height, width = 120}) => {
   const {
     isViewFocused,
     isClientFocused,
@@ -63,6 +63,7 @@ const View = ({height}) => {
   const [rangeAnchor, setRangeAnchor] = useState(() => new Date());
   const [viewLevel, setViewLevel] = useState('range');
 
+  const isCompact = width < 95;
   const selectedRange = VIEW_RANGE_OPTIONS[selectedRangeIndex];
   const currentRange = getViewDateRange(selectedRange.type, rangeAnchor);
   const periodLabel = formatViewPeriod(selectedRange.type, rangeAnchor);
@@ -298,6 +299,7 @@ const View = ({height}) => {
             startDate={currentRange.startDate}
             endDate={currentRange.endDate}
             reload={reload}
+            compact={isCompact}
           />
         ) : (
           <Text dimColor>Loading selected task...</Text>
@@ -312,6 +314,7 @@ const View = ({height}) => {
           isViewFocused={isViewFocused}
           selectedTaskId={selectedTaskId}
           draftEntry={draftEntry}
+          compact={isCompact}
         />
       </Box>
     </Box>
@@ -380,6 +383,7 @@ const View = ({height}) => {
       reload={reload}
       rangeLabel={selectedRange.label}
       periodLabel={periodLabel}
+      compact={isCompact}
     />
   );
 

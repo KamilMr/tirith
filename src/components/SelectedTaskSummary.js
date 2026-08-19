@@ -19,6 +19,7 @@ const SelectedTaskSummary = ({
   startDate,
   endDate,
   reload,
+  compact = false,
 }) => {
   const isRunning = timeEntries.some(entry => !entry.end);
   const activeDayCount = new Set(
@@ -75,8 +76,8 @@ const SelectedTaskSummary = ({
         {client?.name || 'Unknown client'}
       </Text>
 
-      <Box flexDirection="row" marginTop={1}>
-        <Box width={29}>
+      <Box flexDirection={compact ? 'column' : 'row'} marginTop={1}>
+        <Box width={compact ? undefined : 29}>
           <KeyValue
             label="Time"
             items={[
@@ -99,10 +100,18 @@ const SelectedTaskSummary = ({
             ]}
           />
         </Box>
-        <Box width={29} marginLeft={2}>
+        <Box
+          width={compact ? undefined : 29}
+          marginLeft={compact ? 0 : 2}
+          marginTop={compact ? 1 : 0}
+        >
           <KeyValue label="Activity" items={activityItems} />
         </Box>
-        <Box flexGrow={1} marginLeft={2}>
+        <Box
+          flexGrow={1}
+          marginLeft={compact ? 0 : 2}
+          marginTop={compact ? 1 : 0}
+        >
           <LiveTaskPricing
             taskId={task.id}
             estimatedMinutes={task.estimated_minutes}

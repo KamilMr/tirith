@@ -166,7 +166,7 @@ describe('View live metric isolation', () => {
   });
 
   it('shows the overall report with selected-task context', () => {
-    const view = View({height: 40});
+    const view = View({height: 40, width: 70});
 
     const periodSummary = findElement(
       view,
@@ -187,7 +187,10 @@ describe('View live metric isolation', () => {
       endDate: '2026-08-18',
       periodLabel: 'August 18, 2026',
     });
+    expect(periodSummary.props.compact).toBe(true);
+    expect(taskSummary.props.compact).toBe(true);
     expect(taskSummary.props.timeEntries.map(entry => entry.id)).toEqual([10]);
+    expect(taskSessions.props.compact).toBe(true);
     expect(taskSessions.props.timeEntries.map(entry => entry.id)).toEqual([10]);
     expect(taskSessions.props.overlapEntries.map(entry => entry.id)).toEqual([
       10, 11,

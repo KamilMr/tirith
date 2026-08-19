@@ -29,6 +29,7 @@ const TaskTimeEntries = ({
   isViewFocused,
   selectedTaskId,
   draftEntry,
+  compact = false,
 }) => {
   const selectedEntry = timeEntries[selectedEntryIndex];
   const entryBeingChecked = draftEntry || selectedEntry;
@@ -48,32 +49,51 @@ const TaskTimeEntries = ({
         </Text>
       ) : (
         <Box flexDirection="column" marginTop={1}>
-          <Box gap={1}>
-            <Box width={2} />
-            <Box width={16}>
-              <Text bold dimColor>
-                Task
-              </Text>
-            </Box>
-            <Box width={19}>
-              <Text bold dimColor>
-                Start
-              </Text>
-            </Box>
-            <Box width={19}>
-              <Text bold dimColor>
-                End
-              </Text>
-            </Box>
-            <Box width={20}>
+          {compact ? (
+            <Box gap={1}>
+              <Box width={2} />
+              <Box width={12}>
+                <Text bold dimColor>
+                  Start
+                </Text>
+              </Box>
+              <Box width={10}>
+                <Text bold dimColor>
+                  End
+                </Text>
+              </Box>
               <Text bold dimColor>
                 Duration
               </Text>
             </Box>
-            <Text bold dimColor>
-              Overlap
-            </Text>
-          </Box>
+          ) : (
+            <Box gap={1}>
+              <Box width={2} />
+              <Box width={16}>
+                <Text bold dimColor>
+                  Task
+                </Text>
+              </Box>
+              <Box width={19}>
+                <Text bold dimColor>
+                  Start
+                </Text>
+              </Box>
+              <Box width={19}>
+                <Text bold dimColor>
+                  End
+                </Text>
+              </Box>
+              <Box width={20}>
+                <Text bold dimColor>
+                  Duration
+                </Text>
+              </Box>
+              <Text bold dimColor>
+                Overlap
+              </Text>
+            </Box>
+          )}
 
           <ScrollBox
             height={Math.max(5, height - 30)}
@@ -99,6 +119,33 @@ const TaskTimeEntries = ({
                 displayEntry,
               );
               const taskName = (entry.title || '').slice(0, 16);
+
+              if (compact) {
+                const compactColor = rowOverlaps.length > 0 ? 'red' : color;
+                return (
+                  <Box key={entry.id} gap={1}>
+                    <Text color={compactColor}>{isCursor ? '• ' : '  '}</Text>
+                    <Box width={12}>
+                      <Text color={compactColor}>
+                        {format(displayEntry.start, 'MM-dd HH:mm')}
+                      </Text>
+                    </Box>
+                    <Box width={10}>
+                      <Text color={compactColor}>
+                        {displayEntry.end ? (
+                          format(displayEntry.end, 'HH:mm')
+                        ) : (
+                          <Text color="yellow">Running</Text>
+                        )}
+                      </Text>
+                    </Box>
+                    <Text color={compactColor}>
+                      <EntryDuration entry={displayEntry} />
+                      {isDraftRow ? ' [draft]' : ''}
+                    </Text>
+                  </Box>
+                );
+              }
 
               return (
                 <Box key={entry.id} gap={1}>

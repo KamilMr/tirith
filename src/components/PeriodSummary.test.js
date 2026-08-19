@@ -28,15 +28,16 @@ const summary = {
 };
 
 describe('PeriodSummary', () => {
-  it('presents the overall report in clear time, activity, and earnings groups', () => {
+  it('keeps report groups readable in a narrow view', () => {
     const output = renderToString(
       <PeriodSummary
         summary={summary}
         loading={false}
         rangeLabel="Daily"
         periodLabel="August 19, 2026"
+        compact
       />,
-      {columns: 120},
+      {columns: 50},
     );
 
     expect(output).toContain('Daily Report — August 19, 2026');

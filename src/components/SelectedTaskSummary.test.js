@@ -39,7 +39,7 @@ const entries = [
 ];
 
 describe('SelectedTaskSummary', () => {
-  it('shows selected-task identity, live status, and clearly scoped metrics', () => {
+  it('keeps selected-task identity and metrics readable in a narrow view', () => {
     const output = renderToString(
       <SelectedTaskSummary
         task={task}
@@ -58,8 +58,9 @@ describe('SelectedTaskSummary', () => {
         startDate="2026-08-17"
         endDate="2026-08-23"
         reload={0}
+        compact
       />,
-      {columns: 120},
+      {columns: 50},
     );
 
     expect(output).toContain('Selected Task');

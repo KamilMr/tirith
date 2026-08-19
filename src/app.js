@@ -20,9 +20,11 @@ const LAYOUT = {
 };
 
 const AppContent = () => {
-  const [, rows] = useTerminalSize();
+  const [columns, rows] = useTerminalSize();
   const {focusedSection, activeSidebarSection} = useNavigation();
   const {renderHeight, mainHeight} = getAppHeights(rows);
+  const viewWidth =
+    columns - Math.floor(columns * (LAYOUT.leftColumnWidth / 100));
   const {clientHeight, projectHeight, taskHeight} = getSidebarHeights({
     mainHeight,
     focusedSection,
@@ -39,7 +41,7 @@ const AppContent = () => {
           <Tasks height={taskHeight} />
         </Box>
         <Box flexGrow={1}>
-          <View height={mainHeight} />
+          <View height={mainHeight} width={viewWidth} />
         </Box>
       </Box>
     </Box>
