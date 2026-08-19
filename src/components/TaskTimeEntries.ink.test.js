@@ -24,7 +24,7 @@ const entry = ({id, start, end = null}) => ({
 });
 
 describe('TaskTimeEntries live rendering', () => {
-  it('labels selected-task sessions while checking overlaps against all entries', () => {
+  it('leaves the session heading to its parent while checking overlaps against all entries', () => {
     const selectedTaskEntries = [
       entry({
         id: 1,
@@ -54,7 +54,7 @@ describe('TaskTimeEntries live rendering', () => {
       {columns: 50},
     );
 
-    expect(output).toContain('Selected Task Sessions (1)');
+    expect(output).not.toContain('Task Sessions');
     expect(output).toContain('Duration');
     expect(output).not.toContain('Task 1');
     expect(overlapHarness.find).toHaveBeenCalledWith(

@@ -1,6 +1,10 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
-const harness = vi.hoisted(() => ({stateIndex: 0}));
+const harness = vi.hoisted(() => ({
+  stateIndex: 0,
+  sessionFilter: 'all',
+  keyMappings: [],
+}));
 
 vi.mock('react', async importOriginal => {
   const react = await importOriginal();
@@ -43,6 +47,17 @@ vi.mock('react', async importOriginal => {
           : typeof initialValue === 'function'
             ? initialValue()
             : initialValue;
+      if (index === stateValues.length) {
+        return [
+          harness.sessionFilter,
+          update => {
+            harness.sessionFilter =
+              typeof update === 'function'
+                ? update(harness.sessionFilter)
+                : update;
+          },
+        ];
+      }
       return [value, vi.fn()];
     },
   };
@@ -68,7 +83,11 @@ vi.mock('../contexts/DataContext.js', () => ({
   }),
 }));
 
-vi.mock('../hooks/useComponentKeys.js', () => ({useComponentKeys: () => {}}));
+vi.mock('../hooks/useComponentKeys.js', () => ({
+  useComponentKeys: (componentId, keyMappings) => {
+    harness.keyMappings = keyMappings;
+  },
+}));
 vi.mock('../hooks/useScrollableList.js', () => ({
   default: () => ({
     selectedIndex: 0,
@@ -160,12 +179,23 @@ const findElement = (node, predicate) => {
   return null;
 };
 
+const getText = node => {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (!node || typeof node !== 'object') return '';
+
+  const children = node.props?.children;
+  const childList = Array.isArray(children) ? children : [children];
+  return childList.map(getText).join('');
+};
+
 describe('View live metric isolation', () => {
   beforeEach(() => {
     harness.stateIndex = 0;
+    harness.sessionFilter = 'all';
+    harness.keyMappings = [];
   });
 
-  it('scopes the report to the selected task client and range', () => {
+  it('passes all loaded sessions to the timeline while keeping the summary selected-task scoped', () => {
     const view = View({height: 40, width: 70});
 
     const periodSummary = findElement(
@@ -193,9 +223,47 @@ describe('View live metric isolation', () => {
     expect(taskSummary.props.compact).toBe(true);
     expect(taskSummary.props.timeEntries.map(entry => entry.id)).toEqual([10]);
     expect(taskSessions.props.compact).toBe(true);
+    expect(taskSessions.props.timeEntries.map(entry => entry.id)).toEqual([
+      10, 11,
+    ]);
+    expect(taskSessions.props.overlapEntries.map(entry => entry.id)).toEqual([
+      10, 11,
+    ]);
+    expect(getText(view)).toContain('Task Sessions (2) — All');
+  });
+
+  it('passes only selected-task sessions to the timeline in selected mode', () => {
+    harness.sessionFilter = 'selected';
+    const view = View({height: 40, width: 70});
+
+    const taskSummary = findElement(
+      view,
+      element => element.type === SelectedTaskSummary,
+    );
+    const taskSessions = findElement(
+      view,
+      element => element.type === TaskTimeEntries,
+    );
+
+    expect(taskSummary.props.timeEntries.map(entry => entry.id)).toEqual([10]);
     expect(taskSessions.props.timeEntries.map(entry => entry.id)).toEqual([10]);
     expect(taskSessions.props.overlapEntries.map(entry => entry.id)).toEqual([
       10, 11,
     ]);
+    expect(getText(view)).toContain('Task Sessions (1) — Selected');
+  });
+
+  it('maps lowercase f to toggle the task session filter', () => {
+    View({height: 40, width: 70});
+
+    const filterMapping = harness.keyMappings.find(
+      mapping => mapping.key === 'f',
+    );
+    expect(filterMapping).toBeDefined();
+
+    filterMapping.action();
+    expect(harness.sessionFilter).toBe('selected');
+    filterMapping.action();
+    expect(harness.sessionFilter).toBe('all');
   });
 });

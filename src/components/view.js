@@ -63,6 +63,7 @@ const View = ({height, width = 120}) => {
   const [selectedRangeIndex, setSelectedRangeIndex] = useState(0);
   const [rangeAnchor, setRangeAnchor] = useState(() => new Date());
   const [viewLevel, setViewLevel] = useState('range');
+  const [taskSessionFilter, setTaskSessionFilter] = useState('all');
 
   const isCompact = width < 95;
   const selectedRange = VIEW_RANGE_OPTIONS[selectedRangeIndex];
@@ -81,12 +82,14 @@ const View = ({height, width = 120}) => {
   const selectedTaskEntries = timeEntries.filter(
     entry => entry.task_id === selectedTaskId,
   );
+  const visibleTaskEntries =
+    taskSessionFilter === 'all' ? timeEntries : selectedTaskEntries;
 
   const {
     selectedIndex: selectedEntryIndex,
     selectNext: selectNextEntry,
     selectPrevious: selectPreviousEntry,
-  } = useScrollableList(selectedTaskEntries, {wrap: true});
+  } = useScrollableList(visibleTaskEntries, {wrap: true});
   const {analytics, loading: analyticsLoading} = useTaskAnalytics(
     selectedTaskId,
     currentRange.startDate,
@@ -150,8 +153,8 @@ const View = ({height, width = 120}) => {
   ]);
 
   const deleteSelectedEntry = async () => {
-    if (selectedTaskEntries.length === 0) return;
-    const entryToDelete = selectedTaskEntries[selectedEntryIndex];
+    if (visibleTaskEntries.length === 0) return;
+    const entryToDelete = visibleTaskEntries[selectedEntryIndex];
     await timeEntryModel.delete(entryToDelete.id);
     setTimeEntries(prev => prev.filter(e => e.id !== entryToDelete.id));
     triggerReload();
@@ -160,9 +163,9 @@ const View = ({height, width = 120}) => {
   const {openEditor} = useEditorBuffer(triggerReload);
 
   const startEntryAdjustment = () => {
-    if (selectedTaskEntries.length === 0) return;
+    if (visibleTaskEntries.length === 0) return;
 
-    const entryToAdjust = selectedTaskEntries[selectedEntryIndex];
+    const entryToAdjust = visibleTaskEntries[selectedEntryIndex];
     if (!entryToAdjust?.end) return;
 
     setDraftEntry(roundTimeEntryToFiveMinutes(entryToAdjust));
@@ -205,8 +208,16 @@ const View = ({height, width = 120}) => {
   };
 
   const handleEditorOpen = () => {
-    if (selectedTaskEntries.length === 0) return;
-    openEditor(selectedTaskEntries, taskDetails?.title || 'Selected Task');
+    if (visibleTaskEntries.length === 0) return;
+    const editorTitle =
+      taskSessionFilter === 'all'
+        ? 'All Entries'
+        : taskDetails?.title || 'Selected Task';
+    openEditor(visibleTaskEntries, editorTitle);
+  };
+
+  const toggleTaskSessionFilter = () => {
+    setTaskSessionFilter(current => (current === 'all' ? 'selected' : 'all'));
   };
 
   const selectRange = direction => {
@@ -270,6 +281,7 @@ const View = ({height, width = 120}) => {
     keyMappings = [
       {key: 'j', action: selectNextEntry},
       {key: 'k', action: selectPreviousEntry},
+      {key: 'f', action: toggleTaskSessionFilter},
       {key: 'd', action: deleteSelectedEntry},
       {key: 'e', action: handleEditorOpen},
       {key: 'm', action: startEntryAdjustment},
@@ -311,9 +323,13 @@ const View = ({height, width = 120}) => {
         )}
       </Box>
       <Box flexDirection="column" marginTop={1}>
+        <Text color="cyan" bold>
+          Task Sessions ({visibleTaskEntries.length}) —{' '}
+          {taskSessionFilter === 'all' ? 'All' : 'Selected'}
+        </Text>
         <TaskTimeEntries
           height={height}
-          timeEntries={selectedTaskEntries}
+          timeEntries={visibleTaskEntries}
           overlapEntries={timeEntries}
           selectedEntryIndex={selectedEntryIndex}
           isViewFocused={isViewFocused}
@@ -472,7 +488,7 @@ const View = ({height, width = 120}) => {
     return renderDashboard();
   };
 
-  const hasTimeEntries = selectedTaskEntries.length > 0;
+  const hasTimeEntries = visibleTaskEntries.length > 0;
 
   return (
     <Frame borderColor={borderColor} width={'100%'} height={height}>
@@ -533,10 +549,10 @@ const View = ({height, width = 120}) => {
           selectedTaskId &&
           (hasTimeEntries ? (
             <HelpBottom>
-              j/k:entries m:move e:edit d:delete t:current Esc:back
+              j/k:entries f:filter m:move e:edit d:delete t:current Esc:back
             </HelpBottom>
           ) : (
-            <HelpBottom>t:current Esc:back</HelpBottom>
+            <HelpBottom>f:filter t:current Esc:back</HelpBottom>
           ))}
         {isViewFocused &&
           viewLevel === 'detail' &&

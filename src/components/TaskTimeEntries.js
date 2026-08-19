@@ -40,9 +40,6 @@ const TaskTimeEntries = ({
 
   return (
     <>
-      <Text color="cyan" bold>
-        Selected Task Sessions ({timeEntries.length})
-      </Text>
       {timeEntries.length === 0 ? (
         <Text dimColor marginLeft={2}>
           No time entries
