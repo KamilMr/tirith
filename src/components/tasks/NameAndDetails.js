@@ -8,12 +8,10 @@ const NameAndDetails = ({task, isSelected}) => {
   const baseColor = isSelected ? 'green' : 'white';
 
   return (
-    <Text color={baseColor} wrap="wrap">
+    <Text color={baseColor} wrap="truncate-end">
       {task.isActive ? '▶ ' : isSelected ? '• ' : '  '}
       {task.title}
-      {estimationDisplay && (
-        <Text dimColor> (est: {estimationDisplay})</Text>
-      )}
+      {estimationDisplay && <Text dimColor> (est: {estimationDisplay})</Text>}
       <MetadataBadges
         epic={task.epic}
         category={task.category}

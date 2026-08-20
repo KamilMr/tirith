@@ -1,5 +1,36 @@
+import React from 'react';
+import {renderToString} from 'ink';
 import {describe, expect, it} from 'vitest';
+import TasksList from './TasksList.js';
 import {getVisibleTaskCount} from './taskListLayout.js';
+
+describe('TasksList', () => {
+  it('keeps every visible task on one terminal row', () => {
+    const projectTasks = Array.from({length: 10}, (_, index) => ({
+      id: index + 1,
+      title: `Task ${index + 1} with a title that exceeds the panel width`,
+      estimatedMinutes: 960,
+      category: 'feature',
+      scope: 'large',
+      isExploration: true,
+      epic: 'Infrastructure',
+    }));
+
+    const output = renderToString(
+      <TasksList
+        panelHeight={11}
+        projectTasks={projectTasks}
+        selectedTaskId={1}
+      />,
+      {columns: 30},
+    );
+
+    expect(output.split('\n')).toHaveLength(6);
+    expect(output).toContain('Task 1');
+    expect(output).toContain('Task 6');
+    expect(output).not.toContain('Task 7');
+  });
+});
 
 describe('getVisibleTaskCount', () => {
   it('shows one task in a compact panel', () => {
